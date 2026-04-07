@@ -21,9 +21,17 @@ enum EstadoIncidencia {
   RESUELTA
 }
 
-enum EstadoReunion {
+enum EstadoGlobalReunion {
   PENDIENTE
-  COMPLETADA
+  CONFIRMADA
+  REALIZADA
+  CANCELADA
+}
+
+enum EstadoParticipante {
+  PENDIENTE
+  RECHAZADA
+  ACEPTADA
 }
 
 model Usuario {
@@ -46,8 +54,8 @@ model Usuario {
   agradecimientosEnviados  Agradecimiento[] @relation("AgradecimientoEmisor")
   agradecimientosRecibidos Agradecimiento[] @relation("AgradecimientoReceptor")
 
-  reunionesSolicitadas Reunion[] @relation("ReunionSolicitante")
-  reunionesRecibidas   Reunion[] @relation("ReunionInvitado")
+  participaciones ReunionParticipante[]
+  reunionesCreadas Reunion[] @relation("ReunionCreador")
 
   incidencias Incidencia[]
 }
@@ -75,10 +83,11 @@ model Referencia {
 }
 
 model Agradecimiento {
-  id            String   @id @default(uuid())
-  emisorId      String
-  receptorId    String
-  referenciaId  String?
+  id              String   @id @default(uuid())
+  emisorId        String
+  receptorId      String
+  nombreContacto  String
+  referenciaId    String?
 
   importe       Float
   createdAt     DateTime @default(now())
@@ -90,21 +99,33 @@ model Agradecimiento {
 }
 
 model Reunion {
-  id              String   @id @default(uuid())
-  solicitanteId   String
-  invitadoId      String
+  id            String   @id @default(uuid())
 
-  fecha           DateTime
-  descripcion     String?
-  estado          EstadoReunion @default(PENDIENTE)
+  creadorId     String
 
-  createdAt       DateTime @default(now())
+  descripcion   String?
+  fechaHora     DateTime
 
-  solicitante Usuario @relation("ReunionSolicitante", fields: [solicitanteId], references: [id])
-  invitado    Usuario @relation("ReunionInvitado", fields: [invitadoId], references: [id])
+  estado        EstadoGlobalReunion @default(PENDIENTE)
 
-  @@index([solicitanteId])
-  @@index([invitadoId])
+  createdAt     DateTime @default(now())
+
+  creador       Usuario  @relation("ReunionCreador", fields: [creadorId], references: [id])
+  participantes ReunionParticipante[]
+}
+
+model ReunionParticipante {
+  id          String   @id @default(uuid())
+
+  usuarioId   String
+  reunionId   String
+
+  estado      EstadoParticipante @default(PENDIENTE)
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+  reunion Reunion @relation(fields: [reunionId], references: [id])
+
+  @@unique([usuarioId, reunionId])
 }
 
 model Incidencia {
