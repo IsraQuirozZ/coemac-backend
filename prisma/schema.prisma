@@ -1,0 +1,123 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Rol {
+  ADMIN
+  USER
+}
+
+enum TipoReferencia {
+  INTERNA
+  EXTERNA
+}
+
+enum EstadoIncidencia {
+  PENDIENTE
+  RESUELTA
+}
+
+enum EstadoReunion {
+  PENDIENTE
+  COMPLETADA
+}
+
+model Usuario {
+  id              String @id @default(uuid())
+  nombre          String
+  apellido        String
+  empresa         String?
+  username        String @unique
+  email           String @unique
+  telefono        String?
+  fechaNacimiento DateTime?
+  passwordHash    String
+  activo          Boolean @default(true)
+  rol             Rol @default(USER)
+  createdAt       DateTime @default(now())
+
+  referenciasEnviadas   Referencia[] @relation("ReferenciaEmisor")
+  referenciasRecibidas  Referencia[] @relation("ReferenciaReceptor")
+
+  agradecimientosEnviados  Agradecimiento[] @relation("AgradecimientoEmisor")
+  agradecimientosRecibidos Agradecimiento[] @relation("AgradecimientoReceptor")
+
+  reunionesSolicitadas Reunion[] @relation("ReunionSolicitante")
+  reunionesRecibidas   Reunion[] @relation("ReunionInvitado")
+
+  incidencias Incidencia[]
+}
+
+model Referencia {
+  id          String @id @default(uuid())
+  emisorId    String
+  receptorId  String
+
+  nombreContacto    String
+  telefonoContacto  String?
+  emailContacto     String?
+  descripcion       String?
+  tipo              TipoReferencia @default(INTERNA)
+
+  createdAt         DateTime @default(now())
+
+  emisor   Usuario @relation("ReferenciaEmisor", fields: [emisorId], references: [id])
+  receptor Usuario @relation("ReferenciaReceptor", fields: [receptorId], references: [id])
+
+  agradecimientos Agradecimiento[]
+
+  @@index([emisorId])
+  @@index([receptorId])
+}
+
+model Agradecimiento {
+  id            String   @id @default(uuid())
+  emisorId      String
+  receptorId    String
+  referenciaId  String?
+
+  importe       Float
+  createdAt     DateTime @default(now())
+
+  emisor   Usuario @relation("AgradecimientoEmisor", fields: [emisorId], references: [id])
+  receptor Usuario @relation("AgradecimientoReceptor", fields: [receptorId], references: [id])
+
+  referencia Referencia? @relation(fields: [referenciaId], references: [id])  
+}
+
+model Reunion {
+  id              String   @id @default(uuid())
+  solicitanteId   String
+  invitadoId      String
+
+  fecha           DateTime
+  descripcion     String?
+  estado          EstadoReunion @default(PENDIENTE)
+
+  createdAt       DateTime @default(now())
+
+  solicitante Usuario @relation("ReunionSolicitante", fields: [solicitanteId], references: [id])
+  invitado    Usuario @relation("ReunionInvitado", fields: [invitadoId], references: [id])
+
+  @@index([solicitanteId])
+  @@index([invitadoId])
+}
+
+model Incidencia {
+  id          String   @id @default(uuid())
+  usuarioId   String
+
+  asunto      String
+  descripcion String
+  estado      EstadoIncidencia @default(PENDIENTE)
+
+  createdAt   DateTime @default(now())
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+}
+
+
