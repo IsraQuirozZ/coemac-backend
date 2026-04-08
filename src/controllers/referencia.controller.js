@@ -22,13 +22,15 @@ const getReferencia = async (req, res, next) => {
 const createReferencia = async (req, res, next) => {
   try {
     const referencia = await referenciaService.createReferencia(req.body);
-    res.status(201).json(referencia);
+    res
+      .status(201)
+      .json({ message: "Referencia created successfully", referencia });
   } catch (error) {
     next(error);
   }
 };
 
-// Deberíamos poder atualizar referencias Por ejemplo si nos equivocamos en datos del contacto
+// Deberíamos poder actualizar referencias Por ejemplo si nos equivocamos en datos del contacto
 const updateReferencia = async (req, res, next) => {
   try {
     const id = req.params.id;

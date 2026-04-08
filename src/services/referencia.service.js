@@ -16,7 +16,8 @@ const getReferencia = async (id) => {
 
   if (!referencia) {
     const error = new Error("Referencia not found");
-    error.status = 404;
+    error.statusCode = 404;
+
     throw error;
   }
 
@@ -27,7 +28,8 @@ const getReferencia = async (id) => {
 const createReferencia = async (data) => {
   if (data.emisorId === data.receptorId) {
     const error = new Error("Cannot send a reference to yourself");
-    error.status = 400;
+    error.statusCode = 400;
+
     throw error;
   }
 
@@ -38,13 +40,15 @@ const createReferencia = async (data) => {
 
   if (!emisor) {
     const error = new Error("Emisor not found");
-    error.status = 404;
+    error.statusCode = 404;
+
     throw error;
   }
 
   if (!receptor) {
     const error = new Error("Receptor not found");
-    error.status = 404;
+    error.statusCode = 404;
+
     throw error;
   }
 
@@ -66,21 +70,73 @@ const createReferencia = async (data) => {
 const updateReferencia = async (id, data) => {
   const referencia = await prisma.referencia.findUnique({
     where: { id },
+    include: { agradecimientos: true },
   });
 
   if (!referencia) {
     const error = new Error("Referencia not found");
-    error.status = 404;
+    error.statusCode = 404;
+
     throw error;
   }
 
-  const updatedData = {
-    nombreContacto: data.nombreContacto,
-    telefonoContacto: data.telefonoContacto,
-    emailContacto: data.emailContacto,
-    descripcion: data.descripcion,
-    tipo: data.tipo,
-  };
+  if (data.receptorId !== undefined && referencia.agradecimientos.length > 0) {
+    const error = new Error(
+      "Cannot change receptor of a referencia with agradecimientos",
+    );
+    error.statusCode = 400;
+
+    throw error;
+  }
+
+  if (
+    data.receptorId !== undefined &&
+    data.receptorId === referencia.emisorId
+  ) {
+    const error = new Error("Cannot send a reference to yourself");
+    error.statusCode = 400;
+
+    throw error;
+  }
+
+  if (data.receptorId !== undefined) {
+    const receptor = await prisma.usuario.findUnique({
+      where: { id: data.receptorId },
+    });
+
+    if (!receptor) {
+      const error = new Error("Receptor not found");
+      error.statusCode = 404;
+
+      throw error;
+    }
+  }
+
+  const updatedData = {};
+
+  if (data.receptorId !== undefined) {
+    updatedData.receptorId = data.receptorId;
+  }
+
+  if (data.nombreContacto !== undefined) {
+    updatedData.nombreContacto = data.nombreContacto;
+  }
+
+  if (data.telefonoContacto !== undefined) {
+    updatedData.telefonoContacto = data.telefonoContacto;
+  }
+
+  if (data.emailContacto !== undefined) {
+    updatedData.emailContacto = data.emailContacto;
+  }
+
+  if (data.descripcion !== undefined) {
+    updatedData.descripcion = data.descripcion;
+  }
+
+  if (data.tipo !== undefined) {
+    updatedData.tipo = data.tipo;
+  }
 
   return await prisma.referencia.update({
     where: { id },
@@ -93,11 +149,20 @@ const updateReferencia = async (id, data) => {
 const deleteReferencia = async (id) => {
   const referencia = await prisma.referencia.findUnique({
     where: { id },
+    include: { agradecimientos: true },
   });
 
   if (!referencia) {
     const error = new Error("Referencia not found");
-    error.status = 404;
+    error.statusCode = 404;
+
+    throw error;
+  }
+
+  if (referencia.agradecimientos.length > 0) {
+    const error = new Error("Cannot delete a referencia with agradecimientos");
+    error.statusCode = 400;
+
     throw error;
   }
 

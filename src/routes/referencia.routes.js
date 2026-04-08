@@ -3,6 +3,7 @@ const router = express.Router();
 const referenciaController = require("../controllers/referencia.controller");
 const {
   validateCreateReferencia,
+  validateUpdateReferencia,
 } = require("../validators/referencia.validator");
 
 // GET ALL
@@ -19,7 +20,11 @@ router.post(
 );
 
 // UPDATE
-router.put("/:id", referenciaController.updateReferencia);
+router.put(
+  "/:id",
+  validateUpdateReferencia,
+  referenciaController.updateReferencia,
+);
 
 // DELETE
 router.delete("/:id", referenciaController.deleteReferencia);
