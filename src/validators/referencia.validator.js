@@ -13,6 +13,7 @@ const validateCreateReferencia = (req, res, next) => {
     nombreContacto,
     telefonoContacto,
     emailContacto,
+    cargoContacto,
     descripcion,
     tipo,
   } = req.body;
@@ -59,6 +60,17 @@ const validateCreateReferencia = (req, res, next) => {
     }
   }
 
+  // CARGO CONTACTO (opcional)
+  if (cargoContacto !== undefined && typeof cargoContacto !== "string") {
+    errors.push("Cargo de contacto must be a string");
+  } else if (cargoContacto && cargoContacto.trim().length < 3) {
+    errors.push("Cargo de contacto must be at least 3 characters long");
+  } else if (cargoContacto && cargoContacto.trim().length > 50) {
+    errors.push("Cargo de contacto cannot exceed 50 characters");
+  } else if (cargoContacto && !nombreRegex.test(cargoContacto.trim())) {
+    errors.push("Cargo de contacto must contain only letters and spaces");
+  }
+
   // DESCRIPCION (opcional)
   if (descripcion !== undefined && typeof descripcion !== "string") {
     errors.push("Descripcion must be a string");
@@ -98,6 +110,13 @@ const validateCreateReferencia = (req, res, next) => {
     ? emailContacto.trim().toLowerCase()
     : undefined;
 
+  req.body.cargoContacto = cargoContacto
+    ? cargoContacto
+        .trim()
+        .toLowerCase()
+        .replace(/\b\w/g, (char) => char.toUpperCase())
+    : undefined;
+
   req.body.descripcion = descripcion ? descripcion.trim() : undefined;
 
   if (tipo !== undefined) {
@@ -116,6 +135,7 @@ const validateUpdateReferencia = (req, res, next) => {
     "nombreContacto",
     "telefonoContacto",
     "emailContacto",
+    "cargoContacto",
     "descripcion",
     "tipo",
   ];
@@ -131,6 +151,7 @@ const validateUpdateReferencia = (req, res, next) => {
     nombreContacto,
     telefonoContacto,
     emailContacto,
+    cargoContacto,
     descripcion,
     tipo,
   } = req.body;
@@ -140,6 +161,7 @@ const validateUpdateReferencia = (req, res, next) => {
     nombreContacto === undefined &&
     telefonoContacto === undefined &&
     emailContacto === undefined &&
+    cargoContacto === undefined &&
     descripcion === undefined &&
     tipo === undefined
   ) {
@@ -187,6 +209,20 @@ const validateUpdateReferencia = (req, res, next) => {
     }
   }
 
+  // CARGO CONTACTO
+  if (cargoContacto !== undefined) {
+    if (typeof cargoContacto !== "string") {
+      errors.push("Cargo de contacto must be a string");
+    } else if (
+      cargoContacto.trim().length < 3 ||
+      cargoContacto.trim().length > 50
+    ) {
+      errors.push("Cargo de contacto must be between 3 and 50 characters long");
+    } else if (!nombreRegex.test(cargoContacto.trim())) {
+      errors.push("Cargo de contacto must contain only letters and spaces");
+    }
+  }
+
   // DESCRIPCION
   if (descripcion !== undefined) {
     if (typeof descripcion !== "string") {
@@ -230,6 +266,13 @@ const validateUpdateReferencia = (req, res, next) => {
 
   if (emailContacto !== undefined) {
     req.body.emailContacto = emailContacto.trim().toLowerCase();
+  }
+
+  if (cargoContacto !== undefined) {
+    req.body.cargoContacto = cargoContacto
+      .trim()
+      .toLowerCase()
+      .replace(/\b\w/g, (char) => char.toUpperCase());
   }
 
   if (descripcion !== undefined) {

@@ -68,6 +68,7 @@ model Referencia {
   nombreContacto    String
   telefonoContacto  String?
   emailContacto     String?
+  cargoContacto     String?
   descripcion       String?
   tipo              TipoReferencia @default(INTERNA)
 

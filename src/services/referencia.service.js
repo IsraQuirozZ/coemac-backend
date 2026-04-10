@@ -1,37 +1,94 @@
 const prisma = require("../config/prisma");
 
-// GET ALL
-const getReferencias = async (userId, type) => {
-  let where = {};
-
-  if (type === "enviadas") {
-    where = { emisorId: userId };
-  } else if (type === "recibidas") {
-    where = { receptorId: userId };
-  } else {
-    where = {
-      OR: [{ emisorId: userId }, { receptorId: userId }],
-    };
-  }
-
-  if (type && !["enviadas", "recibidas"].includes(type)) {
-    const error = new Error("Invalid type filter");
+const getReferencias = async ({
+  userId,
+  direction,
+  tipo,
+  page = 1,
+  limit = 10,
+}) => {
+  // Validación direction
+  if (direction && !["enviadas", "recibidas"].includes(direction)) {
+    const error = new Error("Invalid direction filter");
     error.statusCode = 400;
     throw error;
   }
 
-  return await prisma.referencia.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      emisor: { select: { nombre: true } },
-      receptor: { select: { nombre: true } },
-      agradecimientos: {
-        select: { id: true },
+  // Normalizar tipo (case insensitive)
+  const tipoMap = {
+    internas: "INTERNA",
+    externas: "EXTERNA",
+  };
+
+  let mappedTipo = null;
+
+  if (tipo && tipo.toLowerCase() !== "todas") {
+    mappedTipo = tipoMap[tipo.toLowerCase()];
+
+    if (!mappedTipo) {
+      const error = new Error("Invalid tipo filter");
+      error.statusCode = 400;
+      throw error;
+    }
+  }
+
+  // Construcción dinámica del where
+  const where = {};
+
+  // Dirección
+  if (direction === "enviadas") {
+    where.emisorId = userId;
+  } else if (direction === "recibidas") {
+    where.receptorId = userId;
+  } else {
+    where.OR = [{ emisorId: userId }, { receptorId: userId }];
+  }
+
+  // Tipo
+  if (mappedTipo) {
+    where.tipo = mappedTipo;
+  }
+
+  // Paginación
+  const pageNumber = Number(page) || 1;
+  const pageSize = Number(limit) || 10;
+  const skip = (pageNumber - 1) * pageSize;
+
+  // Query
+  const [referencias, total] = await Promise.all([
+    prisma.referencia.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: pageSize,
+      select: {
+        id: true,
+        nombreContacto: true,
+        telefonoContacto: true,
+        emailContacto: true,
+        cargoContacto: true,
+        tipo: true,
+        createdAt: true,
+        emisor: { select: { nombre: true, apellido: true } },
+        receptor: { select: { nombre: true, apellido: true } },
+        agradecimientos: {
+          select: { id: true },
+        },
       },
+    }),
+    prisma.referencia.count({ where }),
+  ]);
+  const totalPages = Math.ceil(total / pageSize);
+
+  return {
+    data: referencias,
+    pagination: {
+      total,
+      page: pageNumber,
+      limit: pageSize,
+      totalPages,
     },
-  });
+  };
 };
 
 // GET BY ID
@@ -96,6 +153,7 @@ const createReferencia = async (data, emisorId) => {
       nombreContacto: data.nombreContacto,
       telefonoContacto: data.telefonoContacto,
       emailContacto: data.emailContacto,
+      cargoContacto: data.cargoContacto,
       descripcion: data.descripcion,
       tipo: data.tipo,
     },
@@ -172,6 +230,10 @@ const updateReferencia = async (id, data, userId) => {
 
   if (data.emailContacto !== undefined) {
     updatedData.emailContacto = data.emailContacto;
+  }
+
+  if (data.cargoContacto !== undefined) {
+    updatedData.cargoContacto = data.cargoContacto;
   }
 
   if (data.descripcion !== undefined) {
