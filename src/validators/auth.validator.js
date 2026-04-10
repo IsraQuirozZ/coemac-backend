@@ -7,14 +7,7 @@ const passwordRegex =
 const validateCreateUser = (req, res, next) => {
   const errors = [];
 
-  const allowedFields = [
-    "nombre",
-    "apellido",
-    "username",
-    "email",
-    "password",
-    "repeatPassword",
-  ];
+  const allowedFields = ["nombre", "apellido", "username", "email", "password"];
 
   if (
     Object.keys(req.body).forEach((key) => {
@@ -24,8 +17,7 @@ const validateCreateUser = (req, res, next) => {
     })
   );
 
-  const { nombre, apellido, username, email, password, repeatPassword } =
-    req.body;
+  const { nombre, apellido, username, email, password } = req.body;
 
   const nombreTrimmed = nombre?.trim();
   const apellidoTrimmed = apellido?.trim();
@@ -75,12 +67,6 @@ const validateCreateUser = (req, res, next) => {
     errors.push(
       "Password must be at least 8 characters long and include uppercase, lowercase, number, and special character",
     );
-  }
-
-  if (!repeatPassword || typeof repeatPassword !== "string") {
-    errors.push("Repeat password is required and must be a string");
-  } else if (password.trim() !== repeatPassword.trim()) {
-    errors.push("Passwords do not match");
   }
 
   if (errors.length > 0) {
