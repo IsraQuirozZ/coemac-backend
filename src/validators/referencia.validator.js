@@ -9,7 +9,6 @@ const validateCreateReferencia = (req, res, next) => {
   const errors = [];
 
   const {
-    emisorId,
     receptorId,
     nombreContacto,
     telefonoContacto,
@@ -18,13 +17,10 @@ const validateCreateReferencia = (req, res, next) => {
     tipo,
   } = req.body;
 
-  if (req.body.id) {
-    errors.push("Referencia ID must not be provided");
-  }
-
-  // EMISOR ID
-  if (!emisorId || typeof emisorId !== "string") {
-    errors.push("Emisor ID must be a string");
+  if (req.body.id || req.body.emisorId) {
+    errors.push(
+      "ID and Emisor ID are generated automatically and cannot be provided",
+    );
   }
 
   // RECEPTOR ID
@@ -87,7 +83,6 @@ const validateCreateReferencia = (req, res, next) => {
   }
 
   // NORMALIZE
-  req.body.emisorId = emisorId.trim();
   req.body.receptorId = receptorId.trim();
 
   req.body.nombreContacto = nombreContacto
@@ -115,6 +110,21 @@ const validateCreateReferencia = (req, res, next) => {
 // ==== UPDATE ====
 const validateUpdateReferencia = (req, res, next) => {
   const errors = [];
+
+  const allowedFields = [
+    "receptorId",
+    "nombreContacto",
+    "telefonoContacto",
+    "emailContacto",
+    "descripcion",
+    "tipo",
+  ];
+
+  Object.keys(req.body).forEach((key) => {
+    if (!allowedFields.includes(key)) {
+      errors.push(`Field "${key}" is not allowed for update`);
+    }
+  });
 
   const {
     receptorId,

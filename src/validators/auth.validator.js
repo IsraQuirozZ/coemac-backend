@@ -7,14 +7,7 @@ const passwordRegex =
 const validateCreateUser = (req, res, next) => {
   const errors = [];
 
-  const allowedFields = [
-    "nombre",
-    "apellido",
-    "username",
-    "email",
-    "password",
-    "repeatPassword",
-  ];
+  const allowedFields = ["nombre", "apellido", "username", "email", "password"];
 
   if (
     Object.keys(req.body).forEach((key) => {
@@ -24,8 +17,7 @@ const validateCreateUser = (req, res, next) => {
     })
   );
 
-  const { nombre, apellido, username, email, password, repeatPassword } =
-    req.body;
+  const { nombre, apellido, username, email, password } = req.body;
 
   const nombreTrimmed = nombre?.trim();
   const apellidoTrimmed = apellido?.trim();
@@ -56,7 +48,7 @@ const validateCreateUser = (req, res, next) => {
   } else if (usernameTrimmed.length < 3 || usernameTrimmed.length > 20) {
     errors.push("Username must be between 3 and 20 characters long");
   } else if (!usernameRegex.test(usernameTrimmed)) {
-    errors.push("Username must contain only letters and underscores");
+    errors.push("Username must contain only letters, numbers and underscores");
   }
 
   // EMAIL
@@ -75,12 +67,6 @@ const validateCreateUser = (req, res, next) => {
     errors.push(
       "Password must be at least 8 characters long and include uppercase, lowercase, number, and special character",
     );
-  }
-
-  if (!repeatPassword || typeof repeatPassword !== "string") {
-    errors.push("Repeat password is required and must be a string");
-  } else if (password.trim() !== repeatPassword.trim()) {
-    errors.push("Passwords do not match");
   }
 
   if (errors.length > 0) {
@@ -102,6 +88,36 @@ const validateCreateUser = (req, res, next) => {
   next();
 };
 
+// LOGIN
+const validateLoginUser = (req, res, next) => {
+  const errors = [];
+
+  const { email, password } = req.body;
+  const emailTrimmed = email?.trim().toLowerCase();
+
+  if (!emailTrimmed || typeof email !== "string") {
+    errors.push("Email is required and must be a string");
+  } else if (emailTrimmed.length > 100) {
+    errors.push("Email must be less than 100 characters long");
+  } else if (!emailRegex.test(emailTrimmed)) {
+    errors.push("Email must be a valid email address");
+  }
+
+  if (!password || typeof password !== "string") {
+    errors.push("Password is required");
+  }
+
+  if (errors.length > 0) {
+    return res.status(400).json({ errors });
+  }
+
+  // NORMALIZE
+  req.body.email = emailTrimmed;
+
+  next();
+};
+
 module.exports = {
   validateCreateUser,
+  validateLoginUser,
 };

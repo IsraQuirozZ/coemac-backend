@@ -2,7 +2,10 @@ const referenciaService = require("../services/referencia.service");
 
 const getReferencias = async (req, res, next) => {
   try {
-    const referencias = await referenciaService.getReferencias();
+    const userId = req.user.userId;
+    const { type } = req.query;
+
+    const referencias = await referenciaService.getReferencias(userId, type);
     res.json(referencias);
   } catch (error) {
     next(error);
@@ -11,17 +14,23 @@ const getReferencias = async (req, res, next) => {
 
 const getReferencia = async (req, res, next) => {
   try {
-    const id = req.params.id;
-    const referencia = await referenciaService.getReferencia(id);
+    const userId = req.user.userId;
+    const { id } = req.params;
+    const referencia = await referenciaService.getReferencia(id, userId);
     res.json(referencia);
   } catch (error) {
     next(error);
   }
 };
 
+// CREATE
 const createReferencia = async (req, res, next) => {
   try {
-    const referencia = await referenciaService.createReferencia(req.body);
+    const userId = req.user.userId; // Emisor
+    const referencia = await referenciaService.createReferencia(
+      req.body,
+      userId,
+    );
     res
       .status(201)
       .json({ message: "Referencia created successfully", referencia });
@@ -30,22 +39,28 @@ const createReferencia = async (req, res, next) => {
   }
 };
 
-// Deberíamos poder actualizar referencias Por ejemplo si nos equivocamos en datos del contacto
+// UPDATE
 const updateReferencia = async (req, res, next) => {
   try {
-    const id = req.params.id;
-    const referencia = await referenciaService.updateReferencia(id, req.body);
+    const userId = req.user.userId;
+    const { id } = req.params;
+    const referencia = await referenciaService.updateReferencia(
+      id,
+      req.body,
+      userId,
+    );
     res.json(referencia);
   } catch (error) {
     next(error);
   }
 };
 
-// No deberíamos eliminar referencias, pero por si acaso, lo dejamos
+// DELETE
 const deleteReferencia = async (req, res, next) => {
   try {
-    const id = req.params.id;
-    const referencia = await referenciaService.deleteReferencia(id);
+    const userId = req.user.userId;
+    const { id } = req.params;
+    const referencia = await referenciaService.deleteReferencia(id, userId);
     res.json({
       message: `Referencia "${referencia.id}" eliminada correctamente`,
     });
