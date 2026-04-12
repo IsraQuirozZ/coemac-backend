@@ -60,6 +60,13 @@ const validateCreateReferencia = (req, res, next) => {
     }
   }
 
+  // At least one of telefono or email must be provided
+  if (!telefonoContacto && !emailContacto) {
+    errors.push(
+      "At least one of telefono de contacto or email de contacto must be provided",
+    );
+  }
+
   // CARGO CONTACTO (opcional)
   if (cargoContacto !== undefined && typeof cargoContacto !== "string") {
     errors.push("Cargo de contacto must be a string");
