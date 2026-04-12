@@ -1,19 +1,10 @@
-const userService = require("../services/user.service");
+const usuarioService = require("../services/usuario.service");
 
-const getUsers = async (req, res, next) => {
+const getUsuarios = async (req, res, next) => {
   try {
-    const users = await userService.getUsers();
+    const userId = req.user.userId;
+    const users = await usuarioService.getUsuarios(userId);
     res.json(users);
-  } catch (error) {
-    next(error);
-  }
-};
-
-const getUser = async (req, res, next) => {
-  try {
-    const id = req.params.id;
-    const user = await userService.getUser(id);
-    res.json(user);
   } catch (error) {
     next(error);
   }
@@ -24,7 +15,7 @@ const getUser = async (req, res, next) => {
 const updateUser = async (req, res, next) => {
   try {
     const id = req.params.id;
-    const user = await userService.updateUser(id, req.body);
+    const user = await usuarioService.updateUser(id, req.body);
     res.json(user);
   } catch (error) {
     next(error);
@@ -34,7 +25,7 @@ const updateUser = async (req, res, next) => {
 const deleteUser = async (req, res, next) => {
   try {
     const id = req.params.id;
-    const user = await userService.deleteUser(id);
+    const user = await usuarioService.deleteUser(id);
     res.json({
       message: `User "${user.id}" deleted successfully`,
     });
@@ -44,8 +35,5 @@ const deleteUser = async (req, res, next) => {
 };
 
 module.exports = {
-  getUsers,
-  getUser,
-  updateUser,
-  deleteUser,
+  getUsuarios,
 };

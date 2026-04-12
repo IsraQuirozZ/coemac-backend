@@ -3,9 +3,15 @@ const referenciaService = require("../services/referencia.service");
 const getReferencias = async (req, res, next) => {
   try {
     const userId = req.user.userId;
-    const { type } = req.query;
+    const { direction, tipo, page, limit } = req.query;
 
-    const referencias = await referenciaService.getReferencias(userId, type);
+    const referencias = await referenciaService.getReferencias({
+      userId,
+      direction,
+      tipo,
+      page: Number(page) || 1,
+      limit: Number(limit) || 10,
+    });
     res.json(referencias);
   } catch (error) {
     next(error);
