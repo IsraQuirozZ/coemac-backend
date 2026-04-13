@@ -14,12 +14,4 @@ router.post("/register", validateCreateUser, authController.register);
 // LOGIN
 router.post("/login", validateLoginUser, authController.login);
 
-// RUTA PROTEGIDA DE PRUEBA
-router.get("/me", protect, (req, res) => {
-  res.json({
-    message: "Access granted",
-    user: req.user,
-  });
-});
-
 module.exports = router;

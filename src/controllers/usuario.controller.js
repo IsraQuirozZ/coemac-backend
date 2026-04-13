@@ -12,6 +12,17 @@ const getUsuarios = async (req, res, next) => {
 
 // Create user (REGISTER) is handled by auth.controller.js
 
+// GET ME
+const getMe = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const user = await usuarioService.getMe(userId);
+    res.json(user);
+  } catch (error) {
+    next(error);
+  }
+};
+
 const updateUser = async (req, res, next) => {
   try {
     const id = req.params.id;
@@ -36,4 +47,5 @@ const deleteUser = async (req, res, next) => {
 
 module.exports = {
   getUsuarios,
+  getMe,
 };

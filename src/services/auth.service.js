@@ -1,6 +1,7 @@
 const prisma = require("../config/prisma");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const AppError = require("../utils/AppError");
 
 // REGISTER
 const register = async ({ nombre, apellido, username, email, password }) => {
@@ -22,10 +23,7 @@ const register = async ({ nombre, apellido, username, email, password }) => {
       message = "Email already in use";
     }
 
-    const error = new Error(message);
-    error.statusCode = 400;
-
-    throw error;
+    throw new AppError(message, 400);
   }
 
   const SALT_ROUNDS = 10;
@@ -59,17 +57,13 @@ const login = async ({ email, password }) => {
   });
 
   if (!user) {
-    const error = new Error("Invalid credentials");
-    error.statusCode = 401;
-    throw error;
+    throw new AppError("Invalid credentials", 401);
   }
 
   const passwordMatch = await bcrypt.compare(password, user.passwordHash);
 
   if (!passwordMatch) {
-    const error = new Error("Invalid credentials");
-    error.statusCode = 401;
-    throw error;
+    throw new AppError("Invalid credentials", 401);
   }
 
   const token = generateToken(user);

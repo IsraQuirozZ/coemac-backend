@@ -21,6 +21,26 @@ const getUsuarios = async (userId) => {
   });
 };
 
+// GET ME
+const getMe = async (userId) => {
+  return prisma.usuario.findUnique({
+    where: {
+      id: userId,
+    },
+    select: {
+      id: true,
+      nombre: true,
+      apellido: true,
+      empresa: true,
+      email: true,
+      username: true,
+      telefono: true,
+      fechaNacimiento: true,
+    },
+  });
+};
+
 module.exports = {
   getUsuarios,
+  getMe,
 };

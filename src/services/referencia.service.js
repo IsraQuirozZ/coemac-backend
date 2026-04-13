@@ -1,5 +1,7 @@
 const prisma = require("../config/prisma");
+const AppError = require("../utils/AppError");
 
+// GET ALL
 const getReferencias = async ({
   userId,
   direction,
@@ -9,9 +11,7 @@ const getReferencias = async ({
 }) => {
   // Validación direction
   if (direction && !["enviadas", "recibidas"].includes(direction)) {
-    const error = new Error("Invalid direction filter");
-    error.statusCode = 400;
-    throw error;
+    throw new AppError("Invalid direction filter", 400);
   }
 
   // Normalizar tipo (case insensitive)
@@ -26,9 +26,7 @@ const getReferencias = async ({
     mappedTipo = tipoMap[tipo.toLowerCase()];
 
     if (!mappedTipo) {
-      const error = new Error("Invalid tipo filter");
-      error.statusCode = 400;
-      throw error;
+      throw new AppError("Invalid tipo filter", 400);
     }
   }
 
@@ -58,7 +56,7 @@ const getReferencias = async ({
   const [referencias, total] = await Promise.all([
     prisma.referencia.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ fechaReferencia: "desc" }, { createdAt: "desc" }],
       skip,
       take: pageSize,
       select: {
@@ -68,6 +66,7 @@ const getReferencias = async ({
         emailContacto: true,
         cargoContacto: true,
         tipo: true,
+        fechaReferencia: true,
         createdAt: true,
         emisor: { select: { nombre: true, apellido: true } },
         receptor: { select: { nombre: true, apellido: true } },
@@ -98,21 +97,19 @@ const getReferencia = async (id, userId) => {
       id,
       OR: [{ emisorId: userId }, { receptorId: userId }],
     },
-    select: {
-      id: true,
-      emisor: { select: { nombre: true } },
-      receptor: { select: { nombre: true } },
-      agradecimientos: {
-        select: { id: true },
-      },
+    include: {
+      emisor: true,
+      receptor: true,
+      agradecimientos: { select: { id: true } },
     },
   });
 
   if (!referencia) {
-    const error = new Error("Referencia not found");
-    error.statusCode = 404;
+    throw new AppError("Referencia not found", 404);
+  }
 
-    throw error;
+  if (referencia.emisorId !== userId && referencia.receptorId !== userId) {
+    throw new AppError("Unauthorized access to this referencia", 403);
   }
 
   return referencia;
@@ -121,10 +118,7 @@ const getReferencia = async (id, userId) => {
 // CREATE
 const createReferencia = async (data, emisorId) => {
   if (emisorId === data.receptorId) {
-    const error = new Error("Cannot send a reference to yourself");
-    error.statusCode = 400;
-
-    throw error;
+    throw new AppError("Cannot send a reference to yourself", 400);
   }
 
   const [emisor, receptor] = await Promise.all([
@@ -133,28 +127,25 @@ const createReferencia = async (data, emisorId) => {
   ]);
 
   if (!emisor) {
-    const error = new Error("Emisor not found");
-    error.statusCode = 404;
-
-    throw error;
+    throw new AppError("Emisor not found", 404);
   }
 
   if (!receptor) {
-    const error = new Error("Receptor not found");
-    error.statusCode = 404;
-
-    throw error;
+    throw new AppError("Receptor not found", 404);
   }
 
-  return await prisma.referencia.create({
+  return prisma.referencia.create({
     data: {
       emisorId,
       receptorId: data.receptorId,
       nombreContacto: data.nombreContacto,
-      telefonoContacto: data.telefonoContacto,
-      emailContacto: data.emailContacto,
-      cargoContacto: data.cargoContacto,
-      descripcion: data.descripcion,
+      telefonoContacto: data.telefonoContacto || undefined,
+      emailContacto: data.emailContacto || undefined,
+      cargoContacto: data.cargoContacto || undefined,
+      fechaReferencia: data.fechaReferencia
+        ? new Date(data.fechaReferencia)
+        : undefined,
+      descripcion: data.descripcion || undefined,
       tipo: data.tipo,
     },
     select: {
@@ -176,29 +167,21 @@ const updateReferencia = async (id, data, userId) => {
   });
 
   if (!referencia) {
-    const error = new Error("Referencia not found");
-    error.statusCode = 404;
-
-    throw error;
+    throw new AppError("Referencia not found", 404);
   }
 
   if (data.receptorId !== undefined && referencia.agradecimientos.length > 0) {
-    const error = new Error(
+    throw new AppError(
       "Cannot change receptor of a referencia with agradecimientos",
+      400,
     );
-    error.statusCode = 400;
-
-    throw error;
   }
 
   if (
     data.receptorId !== undefined &&
     data.receptorId === referencia.emisorId
   ) {
-    const error = new Error("Cannot send a reference to yourself");
-    error.statusCode = 400;
-
-    throw error;
+    throw new AppError("Cannot send a reference to yourself", 400);
   }
 
   if (data.receptorId !== undefined) {
@@ -207,10 +190,7 @@ const updateReferencia = async (id, data, userId) => {
     });
 
     if (!receptor) {
-      const error = new Error("Receptor not found");
-      error.statusCode = 404;
-
-      throw error;
+      throw new AppError("Receptor not found", 404);
     }
   }
 
@@ -236,6 +216,10 @@ const updateReferencia = async (id, data, userId) => {
     updatedData.cargoContacto = data.cargoContacto;
   }
 
+  if (data.fechaReferencia !== undefined) {
+    updatedData.fechaReferencia = new Date(data.fechaReferencia);
+  }
+
   if (data.descripcion !== undefined) {
     updatedData.descripcion = data.descripcion;
   }
@@ -245,24 +229,49 @@ const updateReferencia = async (id, data, userId) => {
   }
 
   if (Object.keys(updatedData).length === 0) {
-    const error = new Error("No valid fields provided for update");
-    error.statusCode = 400;
-
-    throw error;
-  } else {
-    return await prisma.referencia.update({
-      where: { id },
-      data: updatedData,
-      select: {
-        id: true,
-        emisor: { select: { nombre: true } },
-        receptor: { select: { nombre: true } },
-        agradecimientos: {
-          select: { id: true },
-        },
-      },
-    });
+    throw new AppError("No valid fields provided for update", 400);
   }
+
+  return await prisma.referencia.update({
+    where: { id },
+    data: updatedData,
+    select: {
+      id: true,
+      emisor: { select: { nombre: true } },
+      receptor: { select: { nombre: true } },
+      agradecimientos: {
+        select: { id: true },
+      },
+    },
+  });
+};
+
+// MARK AS VIEWED
+const markAsViewed = async (referenciaId, userId) => {
+  const referencia = await prisma.referencia.findUnique({
+    where: { id: referenciaId },
+  });
+
+  if (!referencia) {
+    throw new AppError("Referencia not found", 404);
+  }
+
+  // Solo el receptor puede marcar como vista
+  if (referencia.receptorId !== userId) {
+    throw new AppError(
+      "Only the receptor can mark this referencia as viewed",
+      403,
+    );
+  }
+
+  if (referencia.viewedAt) {
+    return referencia;
+  }
+
+  return prisma.referencia.update({
+    where: { id: referenciaId },
+    data: { viewedAt: new Date() },
+  });
 };
 
 // DELETE
@@ -273,17 +282,11 @@ const deleteReferencia = async (id, userId) => {
   });
 
   if (!referencia) {
-    const error = new Error("Referencia not found");
-    error.statusCode = 404;
-
-    throw error;
+    throw new AppError("Referencia not found", 404);
   }
 
   if (referencia.agradecimientos.length > 0) {
-    const error = new Error("Cannot delete a referencia with agradecimientos");
-    error.statusCode = 400;
-
-    throw error;
+    throw new AppError("Cannot delete a referencia with agradecimientos", 400);
   }
 
   return await prisma.referencia.delete({
@@ -296,5 +299,6 @@ module.exports = {
   getReferencia,
   createReferencia,
   updateReferencia,
+  markAsViewed,
   deleteReferencia,
 };

@@ -1,3 +1,5 @@
+const AppError = require("../utils/AppError");
+
 const nombreRegex = /^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+$/;
 const usernameRegex = /^[a-zA-Z0-9_]+$/;
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -70,7 +72,7 @@ const validateCreateUser = (req, res, next) => {
   }
 
   if (errors.length > 0) {
-    return res.status(400).json({ errors });
+    return next(new AppError("Validation failed", 400, errors));
   }
 
   // NORMALIZE
@@ -108,7 +110,7 @@ const validateLoginUser = (req, res, next) => {
   }
 
   if (errors.length > 0) {
-    return res.status(400).json({ errors });
+    return next(new AppError("Validation failed", 400, errors));
   }
 
   // NORMALIZE

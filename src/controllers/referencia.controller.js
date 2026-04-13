@@ -32,14 +32,16 @@ const getReferencia = async (req, res, next) => {
 // CREATE
 const createReferencia = async (req, res, next) => {
   try {
-    const userId = req.user.userId; // Emisor
+    const userId = req.user.userId;
     const referencia = await referenciaService.createReferencia(
       req.body,
       userId,
     );
-    res
-      .status(201)
-      .json({ message: "Referencia created successfully", referencia });
+    res.status(201).json({
+      success: true,
+      message: "Referencia creada correctamente",
+      data: referencia,
+    });
   } catch (error) {
     next(error);
   }
@@ -55,6 +57,18 @@ const updateReferencia = async (req, res, next) => {
       req.body,
       userId,
     );
+    res.json(referencia);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// MARK AS VIEWED
+const markAsViewed = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const { id } = req.params;
+    const referencia = await referenciaService.markAsViewed(id, userId);
     res.json(referencia);
   } catch (error) {
     next(error);
@@ -80,5 +94,6 @@ module.exports = {
   getReferencia,
   createReferencia,
   updateReferencia,
+  markAsViewed,
   deleteReferencia,
 };
