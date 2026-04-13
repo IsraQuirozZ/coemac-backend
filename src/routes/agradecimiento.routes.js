@@ -7,6 +7,10 @@ const {
   validateUpdateAgradecimiento,
 } = require("../validators/agradecimiento.validator");
 
+const { protect } = require("../middlewares/auth.middleware");
+
+router.use(protect);
+
 // GET ALL
 router.get("/", agradecimientoController.getAgradecimientos);
 

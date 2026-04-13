@@ -1,4 +1,4 @@
-const { prisma } = require("../config/prisma.js");
+const  prisma  = require("../config/prisma.js");
 
 // Relaciones que se incluyen en todas las queries
 const include = {
