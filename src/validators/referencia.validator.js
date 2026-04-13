@@ -1,4 +1,5 @@
 const { TipoReferencia } = require("@prisma/client");
+const AppError = require("../utils/AppError");
 
 const nombreRegex = /^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+$/;
 const telefonoRegex = /^\d{9}$/;
@@ -14,6 +15,7 @@ const validateCreateReferencia = (req, res, next) => {
     telefonoContacto,
     emailContacto,
     cargoContacto,
+    fechaReferencia,
     descripcion,
     tipo,
   } = req.body;
@@ -78,6 +80,25 @@ const validateCreateReferencia = (req, res, next) => {
     errors.push("Cargo de contacto must contain only letters and spaces");
   }
 
+  // FECHA REFERENCIA (opcional)
+  if (fechaReferencia !== undefined) {
+    if (typeof fechaReferencia !== "string") {
+      errors.push("Fecha de referencia must be a string in ISO format");
+    } else {
+      const fecha = new Date(fechaReferencia);
+
+      if (isNaN(fecha.getTime())) {
+        errors.push("Fecha de referencia must be a valid date");
+      } else {
+        const now = new Date();
+
+        if (fecha > now) {
+          errors.push("Fecha de referencia cannot be in the future");
+        }
+      }
+    }
+  }
+
   // DESCRIPCION (opcional)
   if (descripcion !== undefined && typeof descripcion !== "string") {
     errors.push("Descripcion must be a string");
@@ -98,7 +119,7 @@ const validateCreateReferencia = (req, res, next) => {
 
   // RESPUESTA SI HAY ERRORES
   if (errors.length > 0) {
-    return res.status(400).json({ errors });
+    return next(new AppError("Validation failed", 400, errors));
   }
 
   // NORMALIZE
@@ -124,6 +145,10 @@ const validateCreateReferencia = (req, res, next) => {
         .replace(/\b\w/g, (char) => char.toUpperCase())
     : undefined;
 
+  req.body.fechaReferencia = fechaReferencia
+    ? new Date(fechaReferencia)
+    : undefined;
+
   req.body.descripcion = descripcion ? descripcion.trim() : undefined;
 
   if (tipo !== undefined) {
@@ -143,6 +168,7 @@ const validateUpdateReferencia = (req, res, next) => {
     "telefonoContacto",
     "emailContacto",
     "cargoContacto",
+    "fechaReferencia",
     "descripcion",
     "tipo",
   ];
@@ -159,6 +185,7 @@ const validateUpdateReferencia = (req, res, next) => {
     telefonoContacto,
     emailContacto,
     cargoContacto,
+    fechaReferencia,
     descripcion,
     tipo,
   } = req.body;
@@ -169,6 +196,7 @@ const validateUpdateReferencia = (req, res, next) => {
     telefonoContacto === undefined &&
     emailContacto === undefined &&
     cargoContacto === undefined &&
+    fechaReferencia === undefined &&
     descripcion === undefined &&
     tipo === undefined
   ) {
@@ -230,6 +258,25 @@ const validateUpdateReferencia = (req, res, next) => {
     }
   }
 
+  // FECHA REFERENCIA
+  if (fechaReferencia !== undefined) {
+    if (typeof fechaReferencia !== "string") {
+      errors.push("Fecha de referencia must be a string in ISO format");
+    } else {
+      const fecha = new Date(fechaReferencia);
+
+      if (isNaN(fecha.getTime())) {
+        errors.push("Fecha de referencia must be a valid date");
+      } else {
+        const now = new Date();
+
+        if (fecha > now) {
+          errors.push("Fecha de referencia cannot be in the future");
+        }
+      }
+    }
+  }
+
   // DESCRIPCION
   if (descripcion !== undefined) {
     if (typeof descripcion !== "string") {
@@ -252,7 +299,7 @@ const validateUpdateReferencia = (req, res, next) => {
 
   // RESPUESTA SI HAY ERRORES
   if (errors.length > 0) {
-    return res.status(400).json({ errors });
+    return next(new AppError("Validation failed", 400, errors));
   }
 
   // NORMALIZE
@@ -280,6 +327,10 @@ const validateUpdateReferencia = (req, res, next) => {
       .trim()
       .toLowerCase()
       .replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+
+  if (fechaReferencia !== undefined) {
+    req.body.fechaReferencia = new Date(fechaReferencia);
   }
 
   if (descripcion !== undefined) {

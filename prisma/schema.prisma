@@ -69,10 +69,12 @@ model Referencia {
   telefonoContacto  String?
   emailContacto     String?
   cargoContacto     String?
+  fechaReferencia   DateTime?
   descripcion       String?
   tipo              TipoReferencia @default(INTERNA)
 
   createdAt         DateTime @default(now())
+  viewedAt          DateTime?
 
   emisor   Usuario @relation("ReferenciaEmisor", fields: [emisorId], references: [id])
   receptor Usuario @relation("ReferenciaReceptor", fields: [receptorId], references: [id])

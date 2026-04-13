@@ -29,6 +29,9 @@ router.put(
   referenciaController.updateReferencia,
 );
 
+// MARK AS VIEWED
+router.patch("/:id/view", referenciaController.markAsViewed);
+
 // DELETE
 router.delete("/:id", referenciaController.deleteReferencia);
 
