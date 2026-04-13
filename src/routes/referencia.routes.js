@@ -5,6 +5,9 @@ const {
   validateCreateReferencia,
   validateUpdateReferencia,
 } = require("../validators/referencia.validator");
+const { protect } = require("../middlewares/auth.middleware");
+
+router.use(protect);
 
 // GET ALL
 router.get("/", referenciaController.getReferencias);

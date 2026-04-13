@@ -1,17 +1,54 @@
 const prisma = require("../config/prisma");
 
 // GET ALL
-const getReferencias = async () => {
+const getReferencias = async (userId, type) => {
+  let where = {};
+
+  if (type === "enviadas") {
+    where = { emisorId: userId };
+  } else if (type === "recibidas") {
+    where = { receptorId: userId };
+  } else {
+    where = {
+      OR: [{ emisorId: userId }, { receptorId: userId }],
+    };
+  }
+
+  if (type && !["enviadas", "recibidas"].includes(type)) {
+    const error = new Error("Invalid type filter");
+    error.statusCode = 400;
+    throw error;
+  }
+
   return await prisma.referencia.findMany({
-    include: { agradecimientos: true },
+    where,
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      emisor: { select: { nombre: true } },
+      receptor: { select: { nombre: true } },
+      agradecimientos: {
+        select: { id: true },
+      },
+    },
   });
 };
 
 // GET BY ID
-const getReferencia = async (id) => {
-  const referencia = await prisma.referencia.findUnique({
-    where: { id },
-    include: { agradecimientos: true },
+const getReferencia = async (id, userId) => {
+  const referencia = await prisma.referencia.findFirst({
+    where: {
+      id,
+      OR: [{ emisorId: userId }, { receptorId: userId }],
+    },
+    select: {
+      id: true,
+      emisor: { select: { nombre: true } },
+      receptor: { select: { nombre: true } },
+      agradecimientos: {
+        select: { id: true },
+      },
+    },
   });
 
   if (!referencia) {
@@ -25,8 +62,8 @@ const getReferencia = async (id) => {
 };
 
 // CREATE
-const createReferencia = async (data) => {
-  if (data.emisorId === data.receptorId) {
+const createReferencia = async (data, emisorId) => {
+  if (emisorId === data.receptorId) {
     const error = new Error("Cannot send a reference to yourself");
     error.statusCode = 400;
 
@@ -34,7 +71,7 @@ const createReferencia = async (data) => {
   }
 
   const [emisor, receptor] = await Promise.all([
-    prisma.usuario.findUnique({ where: { id: data.emisorId } }),
+    prisma.usuario.findUnique({ where: { id: emisorId } }),
     prisma.usuario.findUnique({ where: { id: data.receptorId } }),
   ]);
 
@@ -54,7 +91,7 @@ const createReferencia = async (data) => {
 
   return await prisma.referencia.create({
     data: {
-      emisorId: data.emisorId,
+      emisorId,
       receptorId: data.receptorId,
       nombreContacto: data.nombreContacto,
       telefonoContacto: data.telefonoContacto,
@@ -62,14 +99,21 @@ const createReferencia = async (data) => {
       descripcion: data.descripcion,
       tipo: data.tipo,
     },
-    include: { agradecimientos: true },
+    select: {
+      id: true,
+      emisor: { select: { nombre: true } },
+      receptor: { select: { nombre: true } },
+      agradecimientos: {
+        select: { id: true },
+      },
+    },
   });
 };
 
 // UPDATE
-const updateReferencia = async (id, data) => {
-  const referencia = await prisma.referencia.findUnique({
-    where: { id },
+const updateReferencia = async (id, data, userId) => {
+  const referencia = await prisma.referencia.findFirst({
+    where: { id, emisorId: userId },
     include: { agradecimientos: true },
   });
 
@@ -138,18 +182,32 @@ const updateReferencia = async (id, data) => {
     updatedData.tipo = data.tipo;
   }
 
-  return await prisma.referencia.update({
-    where: { id },
-    data: updatedData,
-    include: { agradecimientos: true },
-  });
+  if (Object.keys(updatedData).length === 0) {
+    const error = new Error("No valid fields provided for update");
+    error.statusCode = 400;
+
+    throw error;
+  } else {
+    return await prisma.referencia.update({
+      where: { id },
+      data: updatedData,
+      select: {
+        id: true,
+        emisor: { select: { nombre: true } },
+        receptor: { select: { nombre: true } },
+        agradecimientos: {
+          select: { id: true },
+        },
+      },
+    });
+  }
 };
 
 // DELETE
-const deleteReferencia = async (id) => {
-  const referencia = await prisma.referencia.findUnique({
-    where: { id },
-    include: { agradecimientos: true },
+const deleteReferencia = async (id, userId) => {
+  const referencia = await prisma.referencia.findFirst({
+    where: { id, emisorId: userId },
+    include: { agradecimientos: { select: { id: true } } },
   });
 
   if (!referencia) {
