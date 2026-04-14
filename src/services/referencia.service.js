@@ -56,7 +56,7 @@ const getReferencias = async ({
   const [referencias, total] = await Promise.all([
     prisma.referencia.findMany({
       where,
-      orderBy: [{ fechaReferencia: "desc" }, { createdAt: "desc" }],
+      orderBy: [{ fechaReferencia: "desc" }],
       skip,
       take: pageSize,
       select: {
@@ -68,6 +68,7 @@ const getReferencias = async ({
         tipo: true,
         fechaReferencia: true,
         createdAt: true,
+        viewedAt: true,
         emisor: { select: { nombre: true, apellido: true } },
         receptor: { select: { nombre: true, apellido: true } },
         agradecimientos: {
