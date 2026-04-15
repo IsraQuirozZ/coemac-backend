@@ -56,7 +56,11 @@ const getReferencias = async ({
   const [referencias, total] = await Promise.all([
     prisma.referencia.findMany({
       where,
-      orderBy: [{ fechaReferencia: "desc" }, { createdAt: "desc" }],
+      orderBy: [
+        { fechaReferencia: "desc" },
+        { createdAt: "desc" },
+        { id: "desc" },
+      ],
       skip,
       take: pageSize,
       select: {
@@ -68,6 +72,7 @@ const getReferencias = async ({
         tipo: true,
         fechaReferencia: true,
         createdAt: true,
+        viewedAt: true,
         emisor: { select: { nombre: true, apellido: true } },
         receptor: { select: { nombre: true, apellido: true } },
         agradecimientos: {
@@ -170,7 +175,11 @@ const updateReferencia = async (id, data, userId) => {
     throw new AppError("Referencia not found", 404);
   }
 
-  if (data.receptorId !== undefined && referencia.agradecimientos.length > 0) {
+  if (
+    data.receptorId !== undefined &&
+    data.receptorId !== referencia.receptorId &&
+    referencia.agradecimientos.length > 0
+  ) {
     throw new AppError(
       "Cannot change receptor of a referencia with agradecimientos",
       400,
