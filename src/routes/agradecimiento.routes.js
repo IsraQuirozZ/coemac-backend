@@ -20,13 +20,7 @@ router.get("/:id", agradecimientoController.getAgradecimiento);
 // CREATE
 router.post(
   "/",
-  (req, res, next) => {
-    console.log("¡He recibido algo en POST /agradecimientos!");
-    console.log("Body recibido:", req.body);
-    next();
-  },
-  
-  //validateCreateAgradecimiento,
+  validateCreateAgradecimiento,
   agradecimientoController.createAgradecimiento,
 );
 
