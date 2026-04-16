@@ -39,7 +39,7 @@ const createReferencia = async (req, res, next) => {
     );
     res.status(201).json({
       success: true,
-      message: "Referencia creada correctamente",
+      message: "Referencia created successfully",
       data: referencia,
     });
   } catch (error) {
@@ -82,7 +82,7 @@ const deleteReferencia = async (req, res, next) => {
     const { id } = req.params;
     const referencia = await referenciaService.deleteReferencia(id, userId);
     res.json({
-      message: `Referencia "${referencia.id}" eliminada correctamente`,
+      message: `Referencia "${referencia.id}" deleted successfully`,
     });
   } catch (error) {
     next(error);
