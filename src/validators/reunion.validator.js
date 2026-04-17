@@ -99,7 +99,22 @@ const updateReunionValidator = [
     .withMessage("Estado must be one of REALIZADA, CANCELADA"),
 ];
 
+// CHANGE STATUS
+const changeReunionStatusValidator = [
+  body("estado")
+    .isString()
+    .withMessage("Estado must be a string")
+    .notEmpty()
+    .withMessage("Estado is required")
+    .bail()
+    .trim()
+    .toUpperCase()
+    .isIn([EstadoReunion.REALIZADA, EstadoReunion.CANCELADA])
+    .withMessage("Estado must be one of REALIZADA, CANCELADA"),
+];
+
 module.exports = {
   createReunionValidator,
   updateReunionValidator,
+  changeReunionStatusValidator,
 };
