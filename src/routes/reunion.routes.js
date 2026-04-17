@@ -4,6 +4,7 @@ const reunionController = require("../controllers/reunion.controller");
 const {
   createReunionValidator,
   updateReunionValidator,
+  changeReunionStatusValidator,
 } = require("../validators/reunion.validator");
 const validateFields = require("../middlewares/validateFields");
 const { protect } = require("../middlewares/auth.middleware");
@@ -34,6 +35,14 @@ router.patch(
 
 // MARK AS VIEWED
 router.patch("/:id/viewed", reunionController.markAsViewed);
+
+// CHANGE STATUS
+router.patch(
+  "/:id/status",
+  changeReunionStatusValidator,
+  validateFields,
+  reunionController.changeReunionStatus,
+);
 
 // DELETE
 router.delete("/:id", reunionController.deleteReunion);

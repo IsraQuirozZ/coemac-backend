@@ -69,6 +69,22 @@ const markAsViewed = async (req, res, next) => {
   }
 };
 
+const changeReunionStatus = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const { id } = req.params;
+    const { estado } = req.body;
+    const reunion = await reunionService.changeReunionStatus(
+      id,
+      userId,
+      estado,
+    );
+    res.json(reunion);
+  } catch (error) {
+    next(error);
+  }
+};
+
 // DELETE
 const deleteReunion = async (req, res, next) => {
   try {
@@ -89,5 +105,6 @@ module.exports = {
   createReunion,
   updateReunion,
   markAsViewed,
+  changeReunionStatus,
   deleteReunion,
 };

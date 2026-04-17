@@ -219,6 +219,40 @@ const markAsViewed = async (reunionId, userId) => {
   });
 };
 
+// CONFIRM/CANCEL REUNION
+const changeReunionStatus = async (reunionId, userId, estado) => {
+  const reunion = await prisma.reunion.findUnique({
+    where: { id: reunionId },
+  });
+
+  if (!reunion) {
+    throw new AppError("Reunion not found", 404);
+  }
+
+  if (reunion.invitadoId !== userId) {
+    console.log("User ID:", userId);
+    console.log("Invitado ID:", reunion.invitadoId);
+
+    throw new AppError(
+      "Only the invited user can change the reunion status",
+      403,
+    );
+  }
+
+  if (reunion.estado !== EstadoReunion.PENDIENTE) {
+    throw new AppError("Only pending meetings can change status", 400);
+  }
+
+  if (![EstadoReunion.REALIZADA, EstadoReunion.CANCELADA].includes(estado)) {
+    throw new AppError("Invalid status", 400);
+  }
+
+  return prisma.reunion.update({
+    where: { id: reunionId },
+    data: { estado },
+  });
+};
+
 // DELETE
 const deleteReunion = async (id, userId) => {
   const reunion = await prisma.reunion.findUnique({ where: { id } }, include);
@@ -231,7 +265,7 @@ const deleteReunion = async (id, userId) => {
     throw new AppError("You can only delete meetings you created", 403);
   }
 
-  if (reunion.estado === "REALIZADA") {
+  if (reunion.estado === EstadoReunion.REALIZADA) {
     throw new AppError("Cannot delete a meeting that has been held", 400);
   }
 
@@ -244,5 +278,6 @@ module.exports = {
   createReunion,
   updateReunion,
   markAsViewed,
+  changeReunionStatus,
   deleteReunion,
 };
