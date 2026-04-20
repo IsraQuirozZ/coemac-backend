@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "Agradecimiento" ADD COLUMN     "fechaNegocio" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+-- AlterTable
+ALTER TABLE "Incidencia" ADD COLUMN     "fechaIncidencia" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;

@@ -1,7 +1,7 @@
 const { body } = require("express-validator");
-const { handleValidationErrors } = require("../middleware/handleValidation"); // Ajusta la ruta si es necesario
+const { handleValidationErrors } = require("../middleware/handleValidation");
 
-// ── Reglas CREATE ──────────────────────────────────────────
+// ── Reglas CREATE (Se mantienen estrictas, esto está perfecto) ────────────────
 const createRules = [
   body("asunto")
     .trim()
@@ -11,23 +11,30 @@ const createRules = [
     .trim()
     .notEmpty().withMessage("La descripción es requerida.")
     .isLength({ min: 10 }).withMessage("La descripción debe tener al menos 10 caracteres."),
-  // El usuarioId lo saca el backend del token, no se valida aquí.
-  // El estado por defecto es PENDIENTE (lo hace Prisma).
+  body("fechaIncidencia")
+    .notEmpty().withMessage("La fecha de la incidencia es requerida.")
+    .isISO8601().withMessage("La fecha debe ser válida.")
 ];
 
-// ── Reglas UPDATE ──────────────────────────────────────────
+// ── Reglas UPDATE CORREGIDAS (Flexibilidad para actualizar estado) ──────────
 const updateRules = [
   body("asunto")
-    .optional()
+    .optional() // Cambiado a opcional para que no bloquee si solo cambias el estado
     .trim()
     .isLength({ min: 5, max: 100 }).withMessage("El asunto debe tener entre 5 y 100 caracteres."),
+  
   body("descripcion")
-    .optional()
+    .optional() // Cambiado a opcional
     .trim()
     .isLength({ min: 10 }).withMessage("La descripción debe tener al menos 10 caracteres."),
+  
   body("estado")
     .optional()
     .isIn(["PENDIENTE", "RESUELTA"]).withMessage("El estado solo puede ser PENDIENTE o RESUELTA."),
+  
+  body("fechaIncidencia")
+    .optional() // Cambiado a opcional
+    .isISO8601().withMessage("La fecha debe ser válida.")
 ];
 
 exports.validateCreateIncidencia = [...createRules, handleValidationErrors];

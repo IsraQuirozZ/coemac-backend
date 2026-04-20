@@ -4,8 +4,7 @@ const { handleValidationErrors } = require("../middleware/handleValidation");
 // ── Reglas CREATE (todos requeridos) ──────────────────────────────────────────
 const createRules = [
 body("emisorId")
-  .notEmpty().withMessage("El emisor es requerido.")
-  .isUUID().withMessage("El emisorId debe ser un UUID válido."),
+  .not().exists().withMessage("El emisor se asignará automáticamente según el usuario autenticado."),
   body("receptorId")
     .notEmpty().withMessage("El receptor es requerido.")
     .isUUID().withMessage("El receptorId debe ser un UUID válido."),
@@ -19,6 +18,10 @@ body("emisorId")
   body("referenciaId")
     .optional({ nullable: true })
     .isUUID().withMessage("El ID de referencia no es válido/existe."),
+  body("fechaNegocio")
+  .notEmpty().withMessage("La fecha del negocio es requerida.")
+  .isISO8601().withMessage("La fecha debe ser válida.")
+    
 ];
 
 // ── Reglas UPDATE (todos opcionales, solo se validan si llegan) ───────────────
@@ -35,6 +38,9 @@ const updateRules = [
   body("referenciaId")
     .optional({ nullable: true })
     .isUUID().withMessage("El ID de referencia no es válido."),
+  body("fechaNegocio")
+  .notEmpty().withMessage("La fecha del negocio es requerida.")
+  .isISO8601().withMessage("La fecha debe ser válida.")
 ];
 
 exports.validateCreateAgradecimiento = [...createRules, handleValidationErrors];

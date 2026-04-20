@@ -28,6 +28,7 @@ const create = async (data) => {
       usuarioId: data.usuarioId,
       asunto: data.asunto,
       descripcion: data.descripcion,
+      fechaIncidencia: data.fechaIncidencia,
     },
     include,
   });
@@ -44,6 +45,7 @@ const update = async (id, data) => {
       ...(data.asunto && { asunto: data.asunto }),
       ...(data.descripcion && { descripcion: data.descripcion }),
       ...(data.estado && { estado: data.estado }),
+      ...(data.fechaIncidencia && { fechaIncidencia: data.fechaIncidencia }),
     },
     include,
   });
