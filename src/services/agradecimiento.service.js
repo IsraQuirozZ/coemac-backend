@@ -91,6 +91,7 @@ const create = async (data) => {
         nombreContacto: data.nombreContacto,
         importe: data.importe,
         ...(data.referenciaId && { referenciaId: data.referenciaId }),
+        fechaNegocio: data.fechaNegocio || new Date(), 
       },
       include,
     });
@@ -178,6 +179,7 @@ const update = async (id, data) => {
       ...(data.referenciaId   && { referenciaId: data.referenciaId }),
       ...(data.emisorId       && { emisorId: data.emisorId }),
       ...(data.receptorId     && { receptorId: data.receptorId }),
+      ...(data.fechaNegocio   && { fechaNegocio: data.fechaNegocio }),
     },
     include,
   });

@@ -87,6 +87,7 @@ model Agradecimiento {
   referenciaId    String?
 
   importe       Float
+  fechaNegocio  DateTime @default(now())
   createdAt     DateTime @default(now())
 
   emisor   Usuario @relation("AgradecimientoEmisor", fields: [emisorId], references: [id])
@@ -124,6 +125,7 @@ model Incidencia {
   descripcion String
   estado      EstadoIncidencia @default(PENDIENTE)
 
+  fechaIncidencia   DateTime @default(now())
   createdAt   DateTime @default(now())
 
   usuario Usuario @relation(fields: [usuarioId], references: [id])
