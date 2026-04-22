@@ -36,6 +36,7 @@ const getMe = async (userId) => {
       username: true,
       telefono: true,
       fechaNacimiento: true,
+      rol: true,
     },
   });
 };
