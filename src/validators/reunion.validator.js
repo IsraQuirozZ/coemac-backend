@@ -31,7 +31,7 @@ const createReunionValidator = [
 
   // DESCRIPCION (opcional)
   body("descripcion")
-    .optional()
+    .optional({ checkFalsy: true })
     .isString()
     .withMessage("Descripcion must be a string")
     .isLength({ min: 10, max: 255 })
