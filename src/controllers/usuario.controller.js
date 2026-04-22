@@ -1,51 +1,29 @@
-const usuarioService = require("../services/usuario.service");
+const service = require("../services/usuario.service");
 
-const getUsuarios = async (req, res, next) => {
-  try {
-    const userId = req.user.userId;
-    const users = await usuarioService.getUsuarios(userId);
-    res.json(users);
-  } catch (error) {
-    next(error);
-  }
-};
+const wrap = (fn) => (req, res, next) => fn(req, res).catch(next);
 
-// Create user (REGISTER) is handled by auth.controller.js
+// GET /api/usuarios
+exports.getUsuarios = wrap(async (req, res) => {
+  const data = await service.getAll();
+  res.json(data);
+});
 
-// GET ME
-const getMe = async (req, res, next) => {
-  try {
-    const userId = req.user.userId;
-    const user = await usuarioService.getMe(userId);
-    res.json(user);
-  } catch (error) {
-    next(error);
-  }
-};
+// GET /api/usuarios/me
+exports.getMe = wrap(async (req, res) => {
+  const userId = req.user.id || req.user.userId;
+  const data = await service.getById(userId);
+  res.json(data);
+});
 
-const updateUser = async (req, res, next) => {
-  try {
-    const id = req.params.id;
-    const user = await usuarioService.updateUser(id, req.body);
-    res.json(user);
-  } catch (error) {
-    next(error);
-  }
-};
+// PUT /api/usuarios/me
+exports.updateMe = wrap(async (req, res) => {
+  const userId = req.user.id || req.user.userId;
+  const data = await service.update(userId, req.body);
+  res.json(data);
+});
 
-const deleteUser = async (req, res, next) => {
-  try {
-    const id = req.params.id;
-    const user = await usuarioService.deleteUser(id);
-    res.json({
-      message: `User "${user.id}" deleted successfully`,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-module.exports = {
-  getUsuarios,
-  getMe,
-};
+// GET /api/usuarios/:id
+exports.getUsuario = wrap(async (req, res) => {
+  const data = await service.getById(req.params.id);
+  res.json(data);
+});
