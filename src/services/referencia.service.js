@@ -4,6 +4,7 @@ const AppError = require("../utils/AppError");
 // GET ALL
 const getReferencias = async ({
   userId,
+  isAdmin = false,
   direction,
   tipo,
   page = 1,
@@ -33,13 +34,15 @@ const getReferencias = async ({
   // Construcción dinámica del where
   const where = {};
 
-  // Dirección
-  if (direction === "enviadas") {
-    where.emisorId = userId;
-  } else if (direction === "recibidas") {
-    where.receptorId = userId;
-  } else {
-    where.OR = [{ emisorId: userId }, { receptorId: userId }];
+  if (!isAdmin) {
+    // Dirección
+    if (direction === "enviadas") {
+      where.emisorId = userId;
+    } else if (direction === "recibidas") {
+      where.receptorId = userId;
+    } else {
+      where.OR = [{ emisorId: userId }, { receptorId: userId }];
+    }
   }
 
   // Tipo
@@ -96,12 +99,14 @@ const getReferencias = async ({
 };
 
 // GET BY ID
-const getReferencia = async (id, userId) => {
+const getReferencia = async (id, userId, isAdmin = false) => {
   const referencia = await prisma.referencia.findFirst({
-    where: {
-      id,
-      OR: [{ emisorId: userId }, { receptorId: userId }],
-    },
+    where: isAdmin
+      ? { id }
+      : {
+          id,
+          OR: [{ emisorId: userId }, { receptorId: userId }],
+        },
     include: {
       emisor: true,
       receptor: true,
@@ -113,8 +118,10 @@ const getReferencia = async (id, userId) => {
     throw new AppError("Referencia not found", 404);
   }
 
-  if (referencia.emisorId !== userId && referencia.receptorId !== userId) {
-    throw new AppError("Unauthorized access to this referencia", 403);
+  if (!isAdmin) {
+    if (referencia.emisorId !== userId && referencia.receptorId !== userId) {
+      throw new AppError("Unauthorized access to this referencia", 403);
+    }
   }
 
   return referencia;

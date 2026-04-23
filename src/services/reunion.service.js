@@ -15,6 +15,7 @@ const include = {
 // GET ALL
 const getReuniones = async ({
   userId,
+  isAdmin = false,
   direction,
   estado,
   page = 1,
@@ -44,12 +45,14 @@ const getReuniones = async ({
 
   const where = {};
 
-  if (direction === "enviadas") {
-    where.creadorId = userId;
-  } else if (direction === "recibidas") {
-    where.invitadoId = userId;
-  } else {
-    where.OR = [{ creadorId: userId }, { invitadoId: userId }];
+  if (!isAdmin) {
+    if (direction === "enviadas") {
+      where.creadorId = userId;
+    } else if (direction === "recibidas") {
+      where.invitadoId = userId;
+    } else {
+      where.OR = [{ creadorId: userId }, { invitadoId: userId }];
+    }
   }
 
   if (mappedEstado) {
@@ -85,12 +88,14 @@ const getReuniones = async ({
 };
 
 // GET BY ID
-const getReunion = async (id, userId) => {
+const getReunion = async (id, userId, isAdmin = false) => {
   const reunion = await prisma.reunion.findFirst({
-    where: {
-      id,
-      OR: [{ creadorId: userId }, { invitadoId: userId }],
-    },
+    where: isAdmin
+      ? { id }
+      : {
+          id,
+          OR: [{ creadorId: userId }, { invitadoId: userId }],
+        },
     include,
   });
 
@@ -98,8 +103,10 @@ const getReunion = async (id, userId) => {
     throw new AppError("Reunion not found", 404);
   }
 
-  if (reunion.creadorId !== userId && reunion.invitadoId !== userId) {
-    throw new AppError("Unauthorized access to this reunion", 403);
+  if (!isAdmin) {
+    if (reunion.creadorId !== userId && reunion.invitadoId !== userId) {
+      throw new AppError("Unauthorized access to this reunion", 403);
+    }
   }
   return reunion;
 };

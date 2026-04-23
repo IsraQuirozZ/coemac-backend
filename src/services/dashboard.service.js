@@ -191,6 +191,9 @@ const getAdminDashboardData = async (period = "30d") => {
     reunionesCount,
     agradecimientosCount,
     totalImporteCount,
+    topImportadoresResult,
+    topReferenciadoresResult,
+    reunionesParticipacion,
   ] = await Promise.all([
     prisma.referencia.findMany({
       where: {
@@ -259,6 +262,52 @@ const getAdminDashboardData = async (period = "30d") => {
         importe: true,
       },
     }),
+
+    prisma.agradecimiento.groupBy({
+      by: ["receptorId"],
+      where: {
+        createdAt: { gte: fromDate },
+      },
+      _sum: {
+        importe: true,
+      },
+      _count: {
+        receptorId: true,
+      },
+      orderBy: {
+        _sum: {
+          importe: "desc",
+        },
+      },
+      take: 3,
+    }),
+
+    prisma.referencia.groupBy({
+      by: ["emisorId"],
+      where: {
+        createdAt: { gte: fromDate },
+      },
+      _count: {
+        emisorId: true,
+      },
+      orderBy: {
+        _count: {
+          emisorId: "desc",
+        },
+      },
+      take: 3,
+    }),
+
+    prisma.reunion.findMany({
+      where: {
+        createdAt: { gte: fromDate },
+        estado: { not: "CANCELADA" },
+      },
+      select: {
+        creadorId: true,
+        invitadoId: true,
+      },
+    }),
   ]);
 
   const recientes = [
@@ -295,6 +344,79 @@ const getAdminDashboardData = async (period = "30d") => {
 
   const totalImporte = totalImporteCount._sum.importe || 0;
 
+  const topImportadores = await Promise.all(
+    topImportadoresResult.map(async (item) => {
+      const usuario = await prisma.usuario.findUnique({
+        where: { id: item.receptorId },
+        select: {
+          id: true,
+          nombre: true,
+          apellido: true,
+        },
+      });
+
+      return {
+        usuario,
+        totalImporte: item._sum.importe || 0,
+        totalAgradecimientos: item._count.receptorId || 0,
+      };
+    }),
+  );
+
+  const topImportador = topImportadores[0] || null;
+
+  const topReferenciadores = await Promise.all(
+    topReferenciadoresResult.map(async (item) => {
+      const usuario = await prisma.usuario.findUnique({
+        where: {
+          id: item.emisorId,
+        },
+        select: {
+          id: true,
+          nombre: true,
+          apellido: true,
+        },
+      });
+
+      return {
+        usuario,
+        totalReferencias: item._count.emisorId || 0,
+      };
+    }),
+  );
+
+  const reunionesMap = {};
+
+  reunionesParticipacion.forEach((r) => {
+    if (r.creadorId) {
+      reunionesMap[r.creadorId] = (reunionesMap[r.creadorId] || 0) + 1;
+    }
+    if (r.invitadoId) {
+      reunionesMap[r.invitadoId] = (reunionesMap[r.invitadoId] || 0) + 1;
+    }
+  });
+
+  const topReuniones = await Promise.all(
+    Object.entries(reunionesMap)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(async ([userId, total]) => {
+        const usuario = await prisma.usuario.findUnique({
+          where: { id: userId },
+          select: {
+            id: true,
+            nombre: true,
+            apellido: true,
+          },
+        });
+
+        return {
+          usuario,
+          totalReuniones: total,
+        };
+      }),
+  );
+
   return {
     counts: {
       referencias: referenciasCount,
@@ -312,6 +434,10 @@ const getAdminDashboardData = async (period = "30d") => {
     agradecimientos,
     metrics: {
       totalImporte,
+      topImportador,
+      topImportadores,
+      topReferenciadores,
+      topReuniones,
     },
   };
 };
