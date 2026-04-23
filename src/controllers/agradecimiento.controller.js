@@ -5,10 +5,12 @@ const wrap = (fn) => (req, res, next) => fn(req, res).catch(next);
 
 // GET /agradecimientos?emisorId=&receptorId=
 exports.getAgradecimientos = wrap(async (req, res) => {
-  const userId = req.user.id || req.user.userId; // Usuario autenticado
+  const userId = req.user.userId;
+  const isAdmin = req.user.rol === "ADMIN";
 
   const filters = {
     userId, // Filtra por el usuario autenticado
+    isAdmin,
     direction: req.query.direction, // Dirección (emisor o receptor)
   };
   const data = await service.getAll(filters);
@@ -17,7 +19,11 @@ exports.getAgradecimientos = wrap(async (req, res) => {
 
 // GET /agradecimientos/:id
 exports.getAgradecimiento = wrap(async (req, res) => {
-  const data = await service.getById(req.params.id);
+  const userId = req.user.userId;
+  const isAdmin = req.user.rol === "ADMIN";
+  const { id } = req.params;
+
+  const data = await service.getById(id, userId, isAdmin);
   res.json(data);
 });
 
@@ -25,7 +31,7 @@ exports.getAgradecimiento = wrap(async (req, res) => {
 exports.createAgradecimiento = wrap(async (req, res) => {
   const dataConEmisor = {
     ...req.body,
-    emisorId: req.user.id || req.user.userId 
+    emisorId: req.user.userId,
   };
   const data = await service.create(dataConEmisor);
   res.status(201).json(data);

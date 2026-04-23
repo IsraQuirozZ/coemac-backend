@@ -4,10 +4,12 @@ const reunionService = require("../services/reunion.service");
 const getReuniones = async (req, res, next) => {
   try {
     const userId = req.user.userId;
+    const isAdmin = req.user.rol === "ADMIN";
     const { direction, estado, page, limit } = req.query;
 
     const reuniones = await reunionService.getReuniones({
       userId,
+      isAdmin,
       direction,
       estado,
       page: Number(page) || 1,
@@ -23,7 +25,12 @@ const getReuniones = async (req, res, next) => {
 const getReunion = async (req, res, next) => {
   try {
     const userId = req.user.userId;
-    const reunion = await reunionService.getReunion(req.params.id, userId);
+    const isAdmin = req.user.rol === "ADMIN";
+    const reunion = await reunionService.getReunion(
+      req.params.id,
+      userId,
+      isAdmin,
+    );
     res.json(reunion);
   } catch (error) {
     next(error);
