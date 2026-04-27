@@ -119,7 +119,51 @@ const validateLoginUser = (req, res, next) => {
   next();
 };
 
+const validateForgotPassword = (req, res, next) => {
+  const errors = [];
+  const { identifier } = req.body; // Aceptamos 'identifier' que puede ser email 
+  const trimmedId = identifier?.trim().toLowerCase();
+
+  if (!trimmedId) {
+    errors.push("Email or phone number is required");
+  } else if (!emailRegex.test(trimmedId) && !phoneRegex.test(trimmedId)) {
+    errors.push("Must be a valid email or phone number");
+  }
+
+  if (errors.length > 0) {
+    return next(new AppError("Validation failed", 400, errors));
+  }
+
+  req.body.identifier = trimmedId;
+  next();
+};
+
+const validateResetPassword = (req, res, next) => {
+  const errors = [];
+  const { token, newPassword } = req.body;
+
+  if (!token || typeof token !== "string") {
+    errors.push("Token is required");
+  }
+
+  if (!newPassword || typeof newPassword !== "string") {
+    errors.push("New password is required");
+  } else if (!passwordRegex.test(newPassword)) {
+    errors.push(
+      "Password must be at least 8 characters long and include uppercase, lowercase, number, and special character",
+    );
+  }
+
+  if (errors.length > 0) {
+    return next(new AppError("Validation failed", 400, errors));
+  }
+
+  next();
+};
+
 module.exports = {
   validateCreateUser,
   validateLoginUser,
+  validateForgotPassword,
+  validateResetPassword,
 };
