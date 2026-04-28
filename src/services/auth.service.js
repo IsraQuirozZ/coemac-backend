@@ -2,6 +2,7 @@ const prisma = require("../config/prisma");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const AppError = require("../utils/AppError");
+const crypto = require("crypto");
 
 // Configuración global de seguridad
 const SALT_ROUNDS = 10;
@@ -12,10 +13,10 @@ const getTransporter = () => {
   if (!transporter) {
     const nodemailer = require("nodemailer");
     transporter = nodemailer.createTransport({
-      service: 'gmail', 
+      service: "gmail",
       auth: {
         user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS, 
+        pass: process.env.SMTP_PASS,
       },
     });
   }
@@ -45,6 +46,9 @@ const register = async ({ nombre, apellido, username, email, password }) => {
 
   const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
+  const verificationToken = crypto.randomBytes(32).toString("hex");
+  const verificationExpires = new Date(Date.now() + 1000 * 60 * 60);
+
   const user = await prisma.usuario.create({
     data: {
       nombre,
@@ -52,16 +56,78 @@ const register = async ({ nombre, apellido, username, email, password }) => {
       username: normalizedUsername,
       email: normalizedEmail,
       passwordHash: hashedPassword,
+      isVerified: false,
+      emailVerificationToken: verificationToken,
+      emailVerificationExpires: verificationExpires,
     },
   });
 
+  const verifyUrl = `${process.env.APP_DEEP_LINK_URL}/verifyEmail?token=${verificationToken}`;
+
+  await getTransporter().sendMail({
+    from: `"COEMAC App" <${process.env.SMTP_USER}>`,
+    to: user.email,
+    subject: "Verifica tu cuenta",
+    html: `
+          <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:32px;border:1px solid #e5e5e5;border-radius:12px">
+            <h2 style="color:#1A5C4B">Hola ${user.nombre},</h2>
+            <p>Gracias por registrarte en COEMAC.</p>
+            <p>Verifica tu cuenta pulsando el botón:</p>
+            <div style="text-align:center">
+                <a href="${verifyUrl}"
+                   style="display:inline-block;margin:20px 0;padding:14px 28px;background:#1A5C4B;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold">
+                  Verificar cuenta
+                </a>
+            </div>
+            <p style="color:#888;font-size:13px">El enlace expira en <strong>1 hora</strong></p>
+          </div>
+        `,
+  });
+
   return {
-    id: user.id,
-    nombre: user.nombre,
-    apellido: user.apellido,
-    username: user.username,
-    email: user.email,
+    message: "Verification email sent. Please check your inbox.",
   };
+};
+
+// VERIFY EMAIL
+const verifyEmail = async ({ token }) => {
+  if (!token) {
+    throw new AppError("Verification token is required", 400);
+  }
+
+  const user = await prisma.usuario.findFirst({
+    where: {
+      emailVerificationToken: token,
+    },
+  });
+
+  if (!user) {
+    throw new AppError("Invalid verification token", 400);
+  }
+
+  if (!user.emailVerificationExpires) {
+    throw new AppError("Verification token is invalid or has expired", 400);
+  }
+
+  const now = new Date();
+  if (user.emailVerificationExpires < now) {
+    throw new AppError("Verification token has expired", 400);
+  }
+
+  if (user.isVerified) {
+    return { message: "Account already verified", email: user.email };
+  }
+
+  await prisma.usuario.update({
+    where: { id: user.id },
+    data: {
+      isVerified: true,
+      emailVerificationToken: null,
+      emailVerificationExpires: null,
+    },
+  });
+
+  return { message: "Account verified successfully", email: user.email };
 };
 
 // LOGIN
@@ -74,6 +140,10 @@ const login = async ({ email, password }) => {
 
   if (!user) {
     throw new AppError("Invalid credentials", 401);
+  }
+
+  if (!user.isVerified) {
+    throw new AppError("Please verify your email before logging in.", 403);
   }
 
   const passwordMatch = await bcrypt.compare(password, user.passwordHash);
@@ -101,31 +171,33 @@ const generateToken = (user) => {
   return jwt.sign(
     { userId: user.id, username: user.username, rol: user.rol },
     process.env.JWT_SECRET,
-    { expiresIn: "1d" }
+    { expiresIn: "1d" },
   );
 };
 
 // ── FORGOT PASSWORD ───────────────────────────────────────────────────────────
 const forgotPassword = async ({ identifier }) => {
   const isEmail = identifier.includes("@");
-  
+
   const user = await prisma.usuario.findFirst({
     where: isEmail ? { email: identifier } : { telefono: identifier },
   });
-  
+
   if (!user) {
-    console.log(`[Security] Reset attempt for unknown identifier: ${identifier}`);
+    console.log(
+      `[Security] Reset attempt for unknown identifier: ${identifier}`,
+    );
     return; // Retorno silencioso
   }
-  
+
   const resetToken = jwt.sign(
     { userId: user.id, purpose: "password_reset" },
     process.env.JWT_SECRET,
-    { expiresIn: "15m" }
+    { expiresIn: "15m" },
   );
-  
-  const resetUrl = `${process.env.APP_DEEP_LINK_URL}?token=${resetToken}`;
-  
+
+  const resetUrl = `${process.env.APP_DEEP_LINK_URL}/resetPassword?token=${resetToken}`;
+
   try {
     if (isEmail) {
       await getTransporter().sendMail({
@@ -148,13 +220,16 @@ const forgotPassword = async ({ identifier }) => {
         `,
       });
       console.log(`✅ Email de recuperación enviado a: ${user.email}`);
-    } 
+    }
     // Aquí podrías añadir el bloque de Twilio para SMS si identifier no tiene @
   } catch (err) {
-    console.error("[Auth] Error enviando mensaje de recuperación:", err.message);
+    console.error(
+      "[Auth] Error enviando mensaje de recuperación:",
+      err.message,
+    );
   }
 };
- 
+
 // ── RESET PASSWORD ────────────────────────────────────────────────────────────
 const resetPassword = async ({ token, newPassword }) => {
   let decoded;
@@ -165,19 +240,26 @@ const resetPassword = async ({ token, newPassword }) => {
       throw new AppError("El enlace ha expirado. Solicita uno nuevo.", 400);
     throw new AppError("Enlace inválido.", 400);
   }
- 
+
   if (decoded.purpose !== "password_reset")
     throw new AppError("Token no válido para esta operación.", 400);
- 
+
   // Ahora SALT_ROUNDS está disponible globalmente en el archivo
   const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
- 
+
   await prisma.usuario.update({
     where: { id: decoded.userId },
     data: { passwordHash },
   });
-  
-  console.log(`✅ Contraseña actualizada para el usuario ID: ${decoded.userId}`);
+
+  // console.log(`✅ Contraseña actualizada para el usuario ID: ${decoded.userId}`);
+  return;
 };
- 
-module.exports = { register, login, forgotPassword, resetPassword };
+
+module.exports = {
+  register,
+  verifyEmail,
+  login,
+  forgotPassword,
+  resetPassword,
+};

@@ -6,7 +6,6 @@ const usuarioRoutes = require("./routes/usuario.routes");
 const referenciaRoutes = require("./routes/referencia.routes");
 const reunionRoutes = require("./routes/reunion.routes");
 const agradecimientosRoutes = require("./routes/agradecimiento.routes");
-const incidenciasRoutes = require("./routes/incidencias.routes");
 const dashboardRoutes = require("./routes/dashboard.routes");
 
 const app = express();
@@ -20,7 +19,6 @@ app.use("/api/usuarios", usuarioRoutes);
 app.use("/api/referencias", referenciaRoutes);
 app.use("/api/reuniones", reunionRoutes);
 app.use("/api/agradecimientos", agradecimientosRoutes);
-app.use("/api/incidencias", incidenciasRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use(errorMiddleware);
 
