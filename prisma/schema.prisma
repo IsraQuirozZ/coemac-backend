@@ -21,17 +21,11 @@ enum EstadoIncidencia {
   RESUELTA
 }
 
-enum EstadoGlobalReunion {
+enum EstadoReunion {
   PENDIENTE
   CONFIRMADA
   REALIZADA
   CANCELADA
-}
-
-enum EstadoParticipante {
-  PENDIENTE
-  RECHAZADA
-  ACEPTADA
 }
 
 model Usuario {
@@ -46,6 +40,11 @@ model Usuario {
   passwordHash    String
   activo          Boolean @default(true)
   rol             Rol @default(USER)
+
+  isVerified                Boolean @default(false)
+  emailVerificationToken    String?
+  emailVerificationExpires  DateTime?
+
   createdAt       DateTime @default(now())
 
   referenciasEnviadas   Referencia[] @relation("ReferenciaEmisor")
@@ -54,8 +53,8 @@ model Usuario {
   agradecimientosEnviados  Agradecimiento[] @relation("AgradecimientoEmisor")
   agradecimientosRecibidos Agradecimiento[] @relation("AgradecimientoReceptor")
 
-  participaciones ReunionParticipante[]
-  reunionesCreadas Reunion[] @relation("ReunionCreador")
+  reunionesEnviadas    Reunion[] @relation("ReunionCreador")
+  reunionesRecibidas   Reunion[] @relation("ReunionInvitado")
 
   incidencias Incidencia[]
 }
@@ -68,10 +67,13 @@ model Referencia {
   nombreContacto    String
   telefonoContacto  String?
   emailContacto     String?
+  cargoContacto     String?
+  fechaReferencia   DateTime?
   descripcion       String?
   tipo              TipoReferencia @default(INTERNA)
 
   createdAt         DateTime @default(now())
+  viewedAt          DateTime?
 
   emisor   Usuario @relation("ReferenciaEmisor", fields: [emisorId], references: [id])
   receptor Usuario @relation("ReferenciaReceptor", fields: [receptorId], references: [id])
@@ -90,6 +92,7 @@ model Agradecimiento {
   referenciaId    String?
 
   importe       Float
+  fechaNegocio  DateTime @default(now())
   createdAt     DateTime @default(now())
 
   emisor   Usuario @relation("AgradecimientoEmisor", fields: [emisorId], references: [id])
@@ -102,30 +105,21 @@ model Reunion {
   id            String   @id @default(uuid())
 
   creadorId     String
+  invitadoId    String
 
+  fecha         DateTime
   descripcion   String?
-  fechaHora     DateTime
 
-  estado        EstadoGlobalReunion @default(PENDIENTE)
+  estado        EstadoReunion @default(PENDIENTE)
 
   createdAt     DateTime @default(now())
+  viewedAt      DateTime?
 
-  creador       Usuario  @relation("ReunionCreador", fields: [creadorId], references: [id])
-  participantes ReunionParticipante[]
-}
+  creador       Usuario @relation("ReunionCreador", fields: [creadorId], references: [id])
+  invitado      Usuario @relation("ReunionInvitado", fields: [invitadoId], references: [id])
 
-model ReunionParticipante {
-  id          String   @id @default(uuid())
-
-  usuarioId   String
-  reunionId   String
-
-  estado      EstadoParticipante @default(PENDIENTE)
-
-  usuario Usuario @relation(fields: [usuarioId], references: [id])
-  reunion Reunion @relation(fields: [reunionId], references: [id])
-
-  @@unique([usuarioId, reunionId])
+  @@index([creadorId])
+  @@index([invitadoId])
 }
 
 model Incidencia {
@@ -136,6 +130,7 @@ model Incidencia {
   descripcion String
   estado      EstadoIncidencia @default(PENDIENTE)
 
+  fechaIncidencia   DateTime @default(now())
   createdAt   DateTime @default(now())
 
   usuario Usuario @relation(fields: [usuarioId], references: [id])
