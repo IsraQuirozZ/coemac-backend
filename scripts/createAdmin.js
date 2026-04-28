@@ -28,6 +28,7 @@ async function createAdmin() {
         passwordHash,
         rol: "ADMIN",
         activo: true,
+        isVerified: true,
       },
     });
 
