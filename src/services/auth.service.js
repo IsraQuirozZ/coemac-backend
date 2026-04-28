@@ -12,10 +12,10 @@ const getTransporter = () => {
   if (!transporter) {
     const nodemailer = require("nodemailer");
     transporter = nodemailer.createTransport({
-      service: 'gmail', 
+      service: "gmail",
       auth: {
         user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS, 
+        pass: process.env.SMTP_PASS,
       },
     });
   }
@@ -101,31 +101,33 @@ const generateToken = (user) => {
   return jwt.sign(
     { userId: user.id, username: user.username, rol: user.rol },
     process.env.JWT_SECRET,
-    { expiresIn: "1d" }
+    { expiresIn: "1d" },
   );
 };
 
 // ── FORGOT PASSWORD ───────────────────────────────────────────────────────────
 const forgotPassword = async ({ identifier }) => {
   const isEmail = identifier.includes("@");
-  
+
   const user = await prisma.usuario.findFirst({
     where: isEmail ? { email: identifier } : { telefono: identifier },
   });
-  
+
   if (!user) {
-    console.log(`[Security] Reset attempt for unknown identifier: ${identifier}`);
+    console.log(
+      `[Security] Reset attempt for unknown identifier: ${identifier}`,
+    );
     return; // Retorno silencioso
   }
-  
+
   const resetToken = jwt.sign(
     { userId: user.id, purpose: "password_reset" },
     process.env.JWT_SECRET,
-    { expiresIn: "15m" }
+    { expiresIn: "15m" },
   );
-  
+
   const resetUrl = `${process.env.APP_DEEP_LINK_URL}?token=${resetToken}`;
-  
+
   try {
     if (isEmail) {
       await getTransporter().sendMail({
@@ -148,13 +150,16 @@ const forgotPassword = async ({ identifier }) => {
         `,
       });
       console.log(`✅ Email de recuperación enviado a: ${user.email}`);
-    } 
+    }
     // Aquí podrías añadir el bloque de Twilio para SMS si identifier no tiene @
   } catch (err) {
-    console.error("[Auth] Error enviando mensaje de recuperación:", err.message);
+    console.error(
+      "[Auth] Error enviando mensaje de recuperación:",
+      err.message,
+    );
   }
 };
- 
+
 // ── RESET PASSWORD ────────────────────────────────────────────────────────────
 const resetPassword = async ({ token, newPassword }) => {
   let decoded;
@@ -165,19 +170,20 @@ const resetPassword = async ({ token, newPassword }) => {
       throw new AppError("El enlace ha expirado. Solicita uno nuevo.", 400);
     throw new AppError("Enlace inválido.", 400);
   }
- 
+
   if (decoded.purpose !== "password_reset")
     throw new AppError("Token no válido para esta operación.", 400);
- 
+
   // Ahora SALT_ROUNDS está disponible globalmente en el archivo
   const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
- 
+
   await prisma.usuario.update({
     where: { id: decoded.userId },
     data: { passwordHash },
   });
-  
-  console.log(`✅ Contraseña actualizada para el usuario ID: ${decoded.userId}`);
+
+  // console.log(`✅ Contraseña actualizada para el usuario ID: ${decoded.userId}`);
+  return;
 };
- 
+
 module.exports = { register, login, forgotPassword, resetPassword };

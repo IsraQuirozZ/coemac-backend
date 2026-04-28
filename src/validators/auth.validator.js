@@ -4,7 +4,7 @@ const nombreRegex = /^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+$/;
 const usernameRegex = /^[a-zA-Z0-9_]+$/;
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const passwordRegex =
-  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&-])[A-Za-z\d@$!%*?&-]{8,}$/;
 
 const validateCreateUser = (req, res, next) => {
   const errors = [];
@@ -121,7 +121,7 @@ const validateLoginUser = (req, res, next) => {
 
 const validateForgotPassword = (req, res, next) => {
   const errors = [];
-  const { identifier } = req.body; // Aceptamos 'identifier' que puede ser email 
+  const { identifier } = req.body; // Aceptamos 'identifier' que puede ser email
   const trimmedId = identifier?.trim().toLowerCase();
 
   if (!trimmedId) {
