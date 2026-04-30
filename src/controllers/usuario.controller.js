@@ -27,3 +27,17 @@ exports.getUsuario = wrap(async (req, res) => {
   const data = await service.getById(req.params.id);
   res.json(data);
 });
+
+// Change password
+exports.changePassword = wrap(async (req, res) => {
+  const userId = req.user.userId;
+
+  const { currentPassword, newPassword } = req.body;
+
+  await service.changePassword(userId, currentPassword, newPassword);
+
+  res.json({
+    success: true,
+    message: "Password updated successfully",
+  });
+});
