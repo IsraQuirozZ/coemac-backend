@@ -39,7 +39,10 @@ exports.createAgradecimiento = wrap(async (req, res) => {
 
 // PUT /agradecimientos/:id
 exports.updateAgradecimiento = wrap(async (req, res) => {
-  const data = await service.update(req.params.id, req.body);
+  const userId = req.user.userId;
+  const isAdmin = req.user.rol === "ADMIN";
+
+  const data = await service.update(req.params.id, req.body, userId);
   res.json(data);
 });
 

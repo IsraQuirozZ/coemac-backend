@@ -67,6 +67,10 @@ const getById = async (id, userId, isAdmin = false) => {
 
 const create = async (data) => {
   try {
+    if (data.emisorId === data.receptorId) {
+      throw { status: 400, message: "No puedes enviarte un agradecimiento a ti mismo." };
+    }
+
     if (data.referenciaId) {
       const referencia = await prisma.referencia.findUnique({
         where: { id: data.referenciaId },
@@ -120,8 +124,14 @@ const create = async (data) => {
   }
 };
 
-const update = async (id, data) => {
-  await getById(id);
+
+const update = async (id, data, userId) => {
+  const existing = await getById(id, userId);
+
+  if (data.receptorId && data.receptorId === existing.emisorId) {
+    throw { status: 400, message: "No puedes asignarte un agradecimiento a ti mismo." };
+  }
+
   return prisma.agradecimiento.update({
     where: { id },
     data: {
