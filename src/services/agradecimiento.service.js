@@ -125,8 +125,8 @@ const create = async (data) => {
 };
 
 
-const update = async (id, data) => {
-  const existing = await getById(id);
+const update = async (id, data, userId) => {
+  const existing = await getById(id, userId);
 
   if (data.receptorId && data.receptorId === existing.emisorId) {
     throw { status: 400, message: "No puedes asignarte un agradecimiento a ti mismo." };
