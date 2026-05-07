@@ -20,7 +20,6 @@ const select = {
 // Lista todos los usuarios activos (para pickers de miembros en referencias, reuniones, etc.)
 const getAll = () =>
   prisma.usuario.findMany({
-    where: { activo: true },
     select,
     orderBy: { nombre: "asc" },
   });
@@ -58,6 +57,32 @@ const update = async (id, data) => {
   });
 };
 
+// Activar/Desactivar usuario (para admin)
+const toggleActive = async (id, userId) => {
+  const user = await prisma.usuario.findUnique({
+    where: { id },
+  });
+
+  if (!user) {
+    throw new AppError("Usuario not found", 404);
+  }
+
+  if (id === userId) {
+    throw new AppError("No puedes desactivar tu propia cuenta", 400);
+  }
+
+  const updatedUser = await prisma.usuario.update({
+    where: { id },
+    data: {
+      activo: !user.activo,
+    },
+  });
+
+  return {
+    message: updatedUser.activo ? "Usuario activado" : "Usuario desactivado",
+  };
+};
+
 const changePassword = async (id, currentPassword, newPassword) => {
   const user = await prisma.usuario.findUnique({ where: { id: id } });
 
@@ -81,4 +106,4 @@ const changePassword = async (id, currentPassword, newPassword) => {
   return { message: "Password updated successfully" };
 };
 
-module.exports = { getAll, getById, update, changePassword };
+module.exports = { getAll, getById, update, changePassword, toggleActive };

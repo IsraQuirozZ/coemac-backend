@@ -152,6 +152,13 @@ const login = async ({ email, password }) => {
     throw new AppError("Invalid credentials", 401);
   }
 
+  if (!user.activo) {
+    throw new AppError(
+      "Tu cuenta está desactivada. Contacta al administrador.",
+      403,
+    );
+  }
+
   const token = generateToken(user);
 
   return {

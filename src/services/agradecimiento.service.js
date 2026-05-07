@@ -1,4 +1,5 @@
 const prisma = require("../config/prisma.js");
+const AppError = require("../utils/AppError.js");
 
 const include = {
   emisor: { select: { id: true, nombre: true, apellido: true, email: true } },
@@ -68,7 +69,10 @@ const getById = async (id, userId, isAdmin = false) => {
 const create = async (data) => {
   try {
     if (data.emisorId === data.receptorId) {
-      throw { status: 400, message: "No puedes enviarte un agradecimiento a ti mismo." };
+      throw {
+        status: 400,
+        message: "No puedes enviarte un agradecimiento a ti mismo.",
+      };
     }
 
     if (data.referenciaId) {
@@ -90,6 +94,7 @@ const create = async (data) => {
           status: 400,
           message: "El emisorId no coincide con la referencia.",
         };
+
       if (data.receptorId !== referencia.emisorId)
         throw {
           status: 400,
@@ -102,6 +107,17 @@ const create = async (data) => {
           status: 400,
           message: "El nombre de contacto no coincide con la referencia.",
         };
+    }
+
+    const receptor = await prisma.usuario.findUnique({
+      where: { id: data.receptorId },
+    });
+
+    if (receptor.activo === false) {
+      throw new AppError(
+        "Cannot send an agradecimiento to an inactive user",
+        400,
+      );
     }
 
     return await prisma.agradecimiento.create({
@@ -124,12 +140,25 @@ const create = async (data) => {
   }
 };
 
-
 const update = async (id, data, userId) => {
   const existing = await getById(id, userId);
 
+  const receptor = await prisma.usuario.findUnique({
+    where: { id: existing.receptorId },
+  });
+
+  if (!receptor?.activo) {
+    throw new AppError(
+      "Cannot update an agradecimiento linked to an inactive user",
+      400,
+    );
+  }
+
   if (data.receptorId && data.receptorId === existing.emisorId) {
-    throw { status: 400, message: "No puedes asignarte un agradecimiento a ti mismo." };
+    throw new AppError(
+      "No puedes asignarte un agradecimiento a ti mismo.",
+      400,
+    );
   }
 
   return prisma.agradecimiento.update({
@@ -148,7 +177,18 @@ const remove = async (id, userId) => {
   const item = await prisma.agradecimiento.findFirst({
     where: { id, emisorId: userId },
   });
-  if (!item) throw { status: 404, message: "Agradecimiento no encontrado." };
+  if (!item) throw new AppError("Agradecimiento no encontrado.", 404);
+
+  const receptor = await prisma.usuario.findUnique({
+    where: { id: item.receptorId },
+  });
+
+  if (!receptor?.activo) {
+    throw new AppError(
+      "Cannot delete an agradecimiento linked to an inactive user.",
+      400,
+    );
+  }
   return prisma.agradecimiento.delete({ where: { id } });
 };
 

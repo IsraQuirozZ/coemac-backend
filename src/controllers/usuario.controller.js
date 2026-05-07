@@ -41,3 +41,15 @@ exports.changePassword = wrap(async (req, res) => {
     message: "Password updated successfully",
   });
 });
+
+// Toggle active (admin)
+exports.toggleActive = wrap(async (req, res) => {
+  const userId = req.user.userId;
+  const data = await service.toggleActive(req.params.id, userId);
+
+  res.json({
+    success: true,
+    message: data.message,
+    data,
+  });
+});
