@@ -130,6 +130,10 @@ const createReunion = async (data, creadorId) => {
     throw new AppError("Invitado not found", 404);
   }
 
+  if (invitado.activo === false) {
+    throw new AppError("Cannot send a reunion to an inactive user", 400);
+  }
+
   return prisma.reunion.create({
     data: {
       creadorId,
@@ -150,6 +154,14 @@ const updateReunion = async (id, data, userId) => {
 
   if (!reunion) {
     throw new AppError("Reunion not found", 404);
+  }
+
+  const invitadoActual = await prisma.usuario.findUnique({
+    where: { id: reunion.invitadoId },
+  });
+
+  if (!invitadoActual?.activo) {
+    throw new AppError("Cannot update reunion linked to an inactive user", 400);
   }
 
   if (reunion.estado !== EstadoReunion.PENDIENTE) {
@@ -266,6 +278,17 @@ const deleteReunion = async (id, userId) => {
 
   if (!reunion) {
     throw new AppError("Reunion not found", 404);
+  }
+
+  const invitado = await prisma.usuario.findUnique({
+    where: { id: reunion.invitadoId },
+  });
+
+  if (!invitado?.activo) {
+    throw new AppError(
+      "Cannot delete a reunion linked to an inactive user",
+      400,
+    );
   }
 
   if (reunion.creadorId !== userId) {

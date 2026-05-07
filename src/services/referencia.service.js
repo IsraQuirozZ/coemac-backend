@@ -146,6 +146,10 @@ const createReferencia = async (data, emisorId) => {
     throw new AppError("Receptor not found", 404);
   }
 
+  if (receptor.activo === false) {
+    throw new AppError("Cannot send a reference to an inactive user", 400);
+  }
+
   return prisma.referencia.create({
     data: {
       emisorId,
@@ -180,6 +184,17 @@ const updateReferencia = async (id, data, userId) => {
 
   if (!referencia) {
     throw new AppError("Referencia not found", 404);
+  }
+
+  const receptorActual = await prisma.usuario.findUnique({
+    where: { id: referencia.receptorId },
+  });
+
+  if (!receptorActual?.activo) {
+    throw new AppError(
+      "Cannot update referencia linked to an inactive user",
+      400,
+    );
   }
 
   if (
@@ -299,6 +314,17 @@ const deleteReferencia = async (id, userId) => {
 
   if (!referencia) {
     throw new AppError("Referencia not found", 404);
+  }
+
+  const receptor = await prisma.usuario.findUnique({
+    where: { id: referencia.receptorId },
+  });
+
+  if (!receptor?.activo) {
+    throw new AppError(
+      "Cannot delete a reference linked to an inactive user",
+      400,
+    );
   }
 
   if (referencia.agradecimientos.length > 0) {
