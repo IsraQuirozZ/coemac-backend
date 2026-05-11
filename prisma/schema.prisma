@@ -93,7 +93,9 @@ model Agradecimiento {
 
   importe       Float
   fechaNegocio  DateTime @default(now())
+  
   createdAt     DateTime @default(now())
+  viewedAt      DateTime?
 
   emisor   Usuario @relation("AgradecimientoEmisor", fields: [emisorId], references: [id])
   receptor Usuario @relation("AgradecimientoReceptor", fields: [receptorId], references: [id])
