@@ -56,33 +56,33 @@ const register = async ({ nombre, apellido, username, email, password }) => {
       username: normalizedUsername,
       email: normalizedEmail,
       passwordHash: hashedPassword,
-      isVerified: true, // Cambiar en producción
+      isVerified: false,
       emailVerificationToken: verificationToken,
       emailVerificationExpires: verificationExpires,
     },
   });
 
-  const verifyUrl = `${process.env.APP_DEEP_LINK_URL}/verifyEmail?token=${verificationToken}`;
+  const verifyUrl = `${process.env.APP_DEEP_LINK_URL}verifyEmail?token=${verificationToken}`;
 
-  // await getTransporter().sendMail({
-  //   from: `"COEMAC App" <${process.env.SMTP_USER}>`,
-  //   to: user.email,
-  //   subject: "Verifica tu cuenta",
-  //   html: `
-  //         <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:32px;border:1px solid #e5e5e5;border-radius:12px">
-  //           <h2 style="color:#1A5C4B">Hola ${user.nombre},</h2>
-  //           <p>Gracias por registrarte en COEMAC.</p>
-  //           <p>Verifica tu cuenta pulsando el botón:</p>
-  //           <div style="text-align:center">
-  //               <a href="${verifyUrl}"
-  //                  style="display:inline-block;margin:20px 0;padding:14px 28px;background:#1A5C4B;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold">
-  //                 Verificar cuenta
-  //               </a>
-  //           </div>
-  //           <p style="color:#888;font-size:13px">El enlace expira en <strong>1 hora</strong></p>
-  //         </div>
-  //       `,
-  // });
+  await getTransporter().sendMail({
+    from: `"COEMAC App" <${process.env.SMTP_USER}>`,
+    to: user.email,
+    subject: "Verifica tu cuenta",
+    html: `
+          <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:32px;border:1px solid #e5e5e5;border-radius:12px">
+            <h2 style="color:#1A5C4B">Hola ${user.nombre},</h2>
+            <p>Gracias por registrarte en COEMAC.</p>
+            <p>Verifica tu cuenta pulsando el botón:</p>
+            <div style="text-align:center">
+                <a href="${verifyUrl}"
+                   style="display:inline-block;margin:20px 0;padding:14px 28px;background:#1A5C4B;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold">
+                  Verificar cuenta
+                </a>
+            </div>
+            <p style="color:#888;font-size:13px">El enlace expira en <strong>1 hora</strong></p>
+          </div>
+        `,
+  });
 
   return {
     message: "Verification email sent. Please check your inbox.",
