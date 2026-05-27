@@ -20,6 +20,9 @@ const getTransporter = () => {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
+      tls: {
+        rejectUnauthorized: false,  
+      },
     });
   }
   return transporter;
