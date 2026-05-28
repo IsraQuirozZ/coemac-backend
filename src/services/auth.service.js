@@ -154,7 +154,7 @@ const forgotPassword = async ({ identifier }) => {
     { expiresIn: "15m" },
   );
 
-  const resetUrl = `${process.env.APP_DEEP_LINK_URL}/resetPassword?token=${resetToken}`;
+const resetUrl = `${process.env.BACKEND_URL}/api/auth/reset-password-redirect?token=${resetToken}`;
 
   if (isEmail) {
     await sendMail({
