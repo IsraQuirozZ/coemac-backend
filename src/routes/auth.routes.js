@@ -33,4 +33,12 @@ router.post(
   authController.resetPassword,
 );
 
+// GET /api/auth/verify-email?token=xxx
+// El email apunta a esta URL HTTPS, el backend redirige al deep link de la app
+router.get("/verify-email", authController.verifyEmailRedirect);
+
+// GET /api/auth/reset-password-redirect?token=xxx  
+// El email apunta a esta URL HTTPS, el backend redirige al deep link de la app
+router.get("/reset-password-redirect", authController.resetPasswordRedirect);
+
 module.exports = router;
