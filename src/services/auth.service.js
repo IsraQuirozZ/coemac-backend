@@ -68,8 +68,7 @@ const register = async ({ nombre, apellido, username, email, password }) => {
     },
   });
 
-  const verifyUrl = `${process.env.APP_DEEP_LINK_URL}/verifyEmail?token=${verificationToken}`;
-
+const verifyUrl = `${process.env.BACKEND_URL}/api/auth/verify-email?token=${verificationToken}`;
   await sendMail({
     to:      user.email,
     subject: "Verifica tu cuenta",
