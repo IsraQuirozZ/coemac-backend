@@ -1,61 +1,38 @@
-const prisma = require("../config/prisma");
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
+const prisma  = require("../config/prisma");
+const bcrypt  = require("bcrypt");
+const jwt     = require("jsonwebtoken");
 const AppError = require("../utils/AppError");
-const crypto = require("crypto");
+const crypto  = require("crypto");
 
 const SALT_ROUNDS = 10;
 
-// ── Nodemailer ────────────────────────────────────────────────────────────────
-let transporter = null;
-const getTransporter = () => {
-  if (!transporter) {
-    const nodemailer = require("nodemailer");
-
-    // LOG de diagnóstico — eliminar tras confirmar que funciona
-    console.log("[SMTP] Configurando transporter con:", {
-      host: process.env.SMTP_HOST,
-      port: process.env.SMTP_PORT,
-      user: process.env.SMTP_USER,
-      passSet: !!process.env.SMTP_PASS,
-    });
-
-    transporter = nodemailer.createTransport({
-      host:   process.env.SMTP_HOST,
-      port:   Number(process.env.SMTP_PORT),
-      // Puerto 465 → secure: true (SSL directo)
-      // Puerto 587 → secure: false (STARTTLS)
-      secure: Number(process.env.SMTP_PORT) === 465,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-      // En Render a veces el certificado del hosting compartido no coincide
-      // Si el host es un hosting propio (cPanel, Plesk) esto es necesario
-      tls: {
-        rejectUnauthorized: false,
-      },
-      // Timeout explícito — Render puede tardar más en conectar
-      connectionTimeout: 10000,
-      socketTimeout:     10000,
-    });
-  }
-  return transporter;
-};
-
-// ── Función auxiliar de envío con diagnóstico completo ───────────────────────
-const sendMail = async (options) => {
-  const t = getTransporter();
-
-  // Verifica la conexión antes de enviar — esto aparecerá en los logs de Render
-  await t.verify().catch((err) => {
-    console.error("[SMTP] Fallo en verify():", err.message, err.code);
-    throw new AppError(`Error de conexión SMTP: ${err.message}`, 500);
+// ── Resend API HTTP (no SMTP) ─────────────────────────────────────────────────
+// Render bloquea SMTP saliente. Usamos la API REST de Resend sobre HTTPS (443)
+// que Render sí permite. No necesita nodemailer.
+const sendMail = async ({ to, subject, html }) => {
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${process.env.RESEND_API_KEY}`,
+      "Content-Type":  "application/json",
+    },
+    body: JSON.stringify({
+      from:    "COEMAC App <desarrollo@coemacnetworking.com>",
+      to,
+      subject,
+      html,
+    }),
   });
 
-  const info = await t.sendMail(options);
-  console.log("[SMTP] Email enviado:", info.messageId, "→", options.to);
-  return info;
+  const data = await res.json();
+
+  if (!res.ok) {
+    console.error("[Resend] Error:", data);
+    throw new AppError(`Error enviando email: ${data.message || res.status}`, 500);
+  }
+
+  console.log("[Resend] Email enviado a:", to, "→ id:", data.id);
+  return data;
 };
 
 // ── REGISTER ──────────────────────────────────────────────────────────────────
@@ -82,20 +59,18 @@ const register = async ({ nombre, apellido, username, email, password }) => {
     data: {
       nombre,
       apellido,
-      username:                  normalizedUsername,
-      email:                     normalizedEmail,
-      passwordHash:              hashedPassword,
-      isVerified:                false, // false hasta que verifique el email
-      emailVerificationToken:    verificationToken,
-      emailVerificationExpires:  verificationExpires,
+      username:                 normalizedUsername,
+      email:                    normalizedEmail,
+      passwordHash:             hashedPassword,
+      isVerified:               false,
+      emailVerificationToken:   verificationToken,
+      emailVerificationExpires: verificationExpires,
     },
   });
 
   const verifyUrl = `${process.env.APP_DEEP_LINK_URL}/verifyEmail?token=${verificationToken}`;
 
-  // Ahora el error de SMTP se propaga — aparecerá en los logs de Render
   await sendMail({
-    from:    `"COEMAC App" <desarrollo@coemacnetworking.com>`,
     to:      user.email,
     subject: "Verifica tu cuenta",
     html: `
@@ -104,8 +79,7 @@ const register = async ({ nombre, apellido, username, email, password }) => {
         <p>Gracias por registrarte en COEMAC.</p>
         <p>Verifica tu cuenta pulsando el botón:</p>
         <div style="text-align:center">
-          <a href="${verifyUrl}"
-             style="display:inline-block;margin:20px 0;padding:14px 28px;background:#1A5C4B;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold">
+          <a href="${verifyUrl}" style="display:inline-block;margin:20px 0;padding:14px 28px;background:#1A5C4B;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold">
             Verificar cuenta
           </a>
         </div>
@@ -125,18 +99,14 @@ const verifyEmail = async ({ token }) => {
     where: { emailVerificationToken: token },
   });
 
-  if (!user)                        throw new AppError("Invalid verification token", 400);
+  if (!user)                          throw new AppError("Invalid verification token", 400);
   if (!user.emailVerificationExpires) throw new AppError("Token inválido", 400);
   if (user.emailVerificationExpires < new Date()) throw new AppError("Verification token has expired", 400);
   if (user.isVerified) return { message: "Account already verified", email: user.email };
 
   await prisma.usuario.update({
     where: { id: user.id },
-    data: {
-      isVerified:               true,
-      emailVerificationToken:   null,
-      emailVerificationExpires: null,
-    },
+    data: { isVerified: true, emailVerificationToken: null, emailVerificationExpires: null },
   });
 
   return { message: "Account verified successfully", email: user.email };
@@ -147,12 +117,12 @@ const login = async ({ email, password }) => {
   const normalizedEmail = email?.trim().toLowerCase();
   const user = await prisma.usuario.findUnique({ where: { email: normalizedEmail } });
 
-  if (!user) throw new AppError("Invalid credentials", 401);
-  if (!user.isVerified) throw new AppError("Please verify your email before logging in.", 403);
+  if (!user)             throw new AppError("Invalid credentials", 401);
+  if (!user.isVerified)  throw new AppError("Please verify your email before logging in.", 403);
 
   const passwordMatch = await bcrypt.compare(password, user.passwordHash);
-  if (!passwordMatch) throw new AppError("Invalid credentials", 401);
-  if (!user.activo)   throw new AppError("Tu cuenta está desactivada. Contacta al administrador.", 403);
+  if (!passwordMatch)    throw new AppError("Invalid credentials", 401);
+  if (!user.activo)      throw new AppError("Tu cuenta está desactivada. Contacta al administrador.", 403);
 
   return {
     token: generateToken(user),
@@ -189,7 +159,6 @@ const forgotPassword = async ({ identifier }) => {
 
   if (isEmail) {
     await sendMail({
-      from:    `"COEMAC App" <desarrollo@coemacnetworking.com>`,
       to:      user.email,
       subject: "Recuperación de contraseña",
       html: `
@@ -198,8 +167,7 @@ const forgotPassword = async ({ identifier }) => {
           <p>Has solicitado restablecer tu contraseña en COEMAC.</p>
           <p>Pulsa el botón. El enlace expira en <strong>15 minutos</strong>.</p>
           <div style="text-align:center">
-            <a href="${resetUrl}"
-               style="display:inline-block;margin:20px 0;padding:14px 28px;background:#1A5C4B;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold">
+            <a href="${resetUrl}" style="display:inline-block;margin:20px 0;padding:14px 28px;background:#1A5C4B;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold">
               Restablecer contraseña
             </a>
           </div>
