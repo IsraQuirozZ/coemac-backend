@@ -95,7 +95,7 @@ const register = async ({ nombre, apellido, username, email, password }) => {
 
   // Ahora el error de SMTP se propaga — aparecerá en los logs de Render
   await sendMail({
-    from:    `"COEMAC App" <${process.env.SMTP_USER}>`,
+    from:    `"COEMAC App" <desarrollo@coemacnetworking.com>`,
     to:      user.email,
     subject: "Verifica tu cuenta",
     html: `
@@ -189,7 +189,7 @@ const forgotPassword = async ({ identifier }) => {
 
   if (isEmail) {
     await sendMail({
-      from:    `"COEMAC App" <${process.env.SMTP_USER}>`,
+      from:    `"COEMAC App" <desarrollo@coemacnetworking.com>`,
       to:      user.email,
       subject: "Recuperación de contraseña",
       html: `
