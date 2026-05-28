@@ -68,7 +68,7 @@ const register = async ({ nombre, apellido, username, email, password }) => {
     },
   });
 
-  const verifyUrl = `${process.env.APP_DEEP_LINK_URL}/verifyEmail?token=${verificationToken}`;
+  const verifyUrl = `${process.env.APP_DEEP_LINK_URL}verifyEmail?token=${verificationToken}`;
 
   await sendMail({
     to:      user.email,
@@ -155,7 +155,7 @@ const forgotPassword = async ({ identifier }) => {
     { expiresIn: "15m" },
   );
 
-  const resetUrl = `${process.env.APP_DEEP_LINK_URL}/resetPassword?token=${resetToken}`;
+  const resetUrl = `${process.env.APP_DEEP_LINK_URL}resetPassword?token=${resetToken}`;
 
   if (isEmail) {
     await sendMail({
