@@ -15,7 +15,7 @@ const register = async (req, res, next) => {
 
 const verifyEmail = async (req, res, next) => {
   try {
-    const result = await authService.verifyEmail(req.query);
+    const result = await authService.verifyEmail(req.body);
 
     res.status(200).json({
       success: true,
@@ -59,6 +59,32 @@ const resetPassword = async (req, res, next) => {
     next(error);
   }
 };
+ 
+// GET /api/auth/verify-email?token=xxx
+// Redirige al deep link de la app — los emails no pueden abrir coemac-app:// directamente
+const verifyEmailRedirect = (req, res) => {
+  const { token } = req.query;
+ 
+  if (!token) {
+    return res.status(400).send("Token no proporcionado.");
+  }
+ 
+  // Redirige al deep link — Android/iOS abrirán la app automáticamente
+  const deepLink = `coemac-app://verifyEmail?token=${token}`;
+  res.redirect(deepLink);
+};
+ 
+// GET /api/auth/reset-password-redirect?token=xxx
+const resetPasswordRedirect = (req, res) => {
+  const { token } = req.query;
+ 
+  if (!token) {
+    return res.status(400).send("Token no proporcionado.");
+  }
+ 
+  const deepLink = `coemac-app://resetPassword?token=${token}`;
+  res.redirect(deepLink);
+};
 
 module.exports = {
   register,
@@ -66,4 +92,6 @@ module.exports = {
   login,
   forgotPassword,
   resetPassword,
+  verifyEmailRedirect,
+  resetPasswordRedirect,
 };

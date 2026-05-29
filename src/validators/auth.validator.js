@@ -121,7 +121,7 @@ const validateLoginUser = (req, res, next) => {
 
 const validateForgotPassword = (req, res, next) => {
   const errors = [];
-  const { identifier } = req.body; // Aceptamos 'identifier' que puede ser email
+  const { identifier } = req.body;
   const trimmedId = identifier?.trim().toLowerCase();
 
   if (!trimmedId) {

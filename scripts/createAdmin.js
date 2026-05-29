@@ -44,5 +44,6 @@ async function createAdmin() {
     await prisma.$disconnect();
   }
 }
-
+//node scripts/createAdmin.js para ejecutar este script y crear un usuario ADMIN en la base de datos. 
+// Asegúrate de tener las variables de entorno configuradas correctamente para la conexión a la base de datos antes de ejecutar el script.
 createAdmin();
