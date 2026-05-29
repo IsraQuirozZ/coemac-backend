@@ -121,13 +121,13 @@ const validateLoginUser = (req, res, next) => {
 
 const validateForgotPassword = (req, res, next) => {
   const errors = [];
-  const { identifier } = req.body; // Aceptamos 'identifier' que puede ser email
+  const { identifier } = req.body;
   const trimmedId = identifier?.trim().toLowerCase();
 
   if (!trimmedId) {
-    errors.push("Email or phone number is required");
-  } else if (!emailRegex.test(trimmedId) && !phoneRegex.test(trimmedId)) {
-    errors.push("Must be a valid email or phone number");
+    errors.push("Email is required");
+  } else if (!emailRegex.test(trimmedId)) {
+    errors.push("Must be a valid email address");
   }
 
   if (errors.length > 0) {
