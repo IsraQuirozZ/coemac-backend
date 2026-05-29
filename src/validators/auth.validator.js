@@ -125,9 +125,9 @@ const validateForgotPassword = (req, res, next) => {
   const trimmedId = identifier?.trim().toLowerCase();
 
   if (!trimmedId) {
-    errors.push("Email is required");
-  } else if (!emailRegex.test(trimmedId)) {
-    errors.push("Must be a valid email address");
+    errors.push("Email or phone number is required");
+  } else if (!emailRegex.test(trimmedId) && !phoneRegex.test(trimmedId)) {
+    errors.push("Must be a valid email or phone number");
   }
 
   if (errors.length > 0) {
